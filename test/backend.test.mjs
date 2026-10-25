@@ -82,3 +82,16 @@ test('footer links require owner access, validate destinations and persist witho
  const reordered=[links[2],links[0]];assert.equal((await f.request('/api/admin/footer-links','PUT',{links:reordered})).status,200);assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,reordered);
  assert.equal((await f.request('/api/admin/footer-links','PUT',{links:[]})).status,200);assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,[]);
 });
+
+test('collection order controls catalog grouping, persists and survives edits and additions',async t=>{
+ const f=await fixture(t);assert.equal((await f.request('/api/admin/collections/order','PUT',{ids:['fallen-angel']})).status,401);await f.login();
+ const second=await(await f.request('/api/admin/collections','POST',{name:'Second Drop',description:'Next chapter',published:true})).json();const draft=await(await f.request('/api/admin/collections','POST',{name:'Draft Drop',description:'Not visible yet',published:false})).json();
+ const product={...f.store.get('products','tee-black'),id:'second-product',collectionId:second.id};f.store.put('products',product);
+ const ids=[second.id,draft.id,'fallen-angel'];const response=await f.request('/api/admin/collections/order','PUT',{ids});assert.equal(response.status,200);assert.deepEqual((await response.json()).collections.map(c=>c.id),ids);
+ let catalog=await(await f.request('/api/catalog')).json();assert.deepEqual(catalog.collections.map(c=>c.id),[second.id,'fallen-angel']);assert.equal(catalog.products[0].id,'second-product');
+ const reopened=createStore(f.filename);try{assert.deepEqual(reopened.list('collections').map(c=>c.id),ids);assert.equal(await reopened.verifyPassword(f.password),true);}finally{reopened.close();}
+ assert.equal((await f.request('/api/admin/collections/'+second.id,'PUT',{...second,name:'Renamed Drop'})).status,200);assert.deepEqual(f.store.list('collections').map(c=>c.id),ids);
+ assert.equal((await f.request('/api/admin/collections/order','PUT',{ids:[second.id,second.id,'fallen-angel']})).status,400);assert.equal((await f.request('/api/admin/collections/order','PUT',{ids:['unknown',draft.id,'fallen-angel']})).status,409);assert.deepEqual(f.store.list('collections').map(c=>c.id),ids);
+ const last=await(await f.request('/api/admin/collections','POST',{name:'Latest Drop',description:'New collection',published:true})).json();assert.deepEqual(f.store.list('collections').map(c=>c.id),[...ids,last.id]);assert.equal((await f.request('/api/admin/collections/order','PUT',{ids})).status,409);
+ assert.equal((await f.request('/api/admin/collections/'+draft.id,'DELETE',{})).status,200);catalog=await(await f.request('/api/catalog')).json();assert.deepEqual(catalog.collections.map(c=>c.id),[second.id,'fallen-angel',last.id]);
+});

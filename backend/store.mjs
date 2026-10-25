@@ -3,6 +3,7 @@ import {randomBytes,createHash,scrypt as scryptCallback,timingSafeEqual} from 'n
 import {promisify} from 'node:util';
 import {products as initialProducts} from '../public/catalog.js';
 import {productPhotos} from '../public/photos.js';
+import {fail} from './validation.mjs';
 const normalizeProduct=p=>({...p,images:productPhotos(p)});
 const scrypt=promisify(scryptCallback);
 export const digest=token=>createHash('sha256').update(token).digest('hex');
@@ -22,8 +23,12 @@ export function createStore(filename){
  }
  const store={
   db,
-  list(type){return db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} ORDER BY rowid`).all().map(row=>{const item=JSON.parse(row.data);return type==='products'?normalizeProduct(item):item;});},
-  catalog(){const collections=store.list('collections').filter(c=>c.published);return {collections,products:store.list('products').filter(p=>p.published&&collections.some(c=>c.id===p.collectionId))};},
+  list(type){const items=db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} ORDER BY rowid`).all().map(row=>{const item=JSON.parse(row.data);return type==='products'?normalizeProduct(item):item;});if(type!=='products'){const saved=db.prepare("SELECT value FROM settings WHERE key='collection-order'").get();const rank=new Map((saved?JSON.parse(saved.value):[]).map((id,i)=>[id,i]));items.sort((a,b)=>(rank.get(a.id)??Number.MAX_SAFE_INTEGER)-(rank.get(b.id)??Number.MAX_SAFE_INTEGER));}return items;},
+  reorderCollections(ids){
+   if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string')||new Set(ids).size!==ids.length)fail('Provide each collection once in the order list.');
+   db.exec('BEGIN IMMEDIATE');try{const current=store.list('collections');if(ids.length!==current.length||ids.some(id=>!current.some(c=>c.id===id)))fail('Collections have changed. Reload the admin and try again.',409);db.prepare('INSERT INTO settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('collection-order',JSON.stringify(ids));db.exec('COMMIT');return store.list('collections');}catch(error){db.exec('ROLLBACK');throw error;}
+  },
+  catalog(){const collections=store.list('collections').filter(c=>c.published),rank=new Map(collections.map((c,i)=>[c.id,i]));return {collections,products:store.list('products').filter(p=>p.published&&rank.has(p.collectionId)).sort((a,b)=>rank.get(a.collectionId)-rank.get(b.collectionId))};},
   get(type,id){const row=db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} WHERE id=?`).get(id);return row?(type==='products'?normalizeProduct(JSON.parse(row.data)):JSON.parse(row.data)):null;},
   put(type,item){if(type==='products')db.prepare('INSERT INTO products VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET collection_id=excluded.collection_id,data=excluded.data').run(item.id,item.collectionId,JSON.stringify(item));else db.prepare('INSERT INTO collections VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data').run(item.id,JSON.stringify(item));return item;},
   remove(type,id){if(type==='collections'&&db.prepare('SELECT id FROM products WHERE collection_id=? LIMIT 1').get(id))return false;db.prepare(`DELETE FROM ${type==='products'?'products':'collections'} WHERE id=?`).run(id);return true;},

@@ -62,6 +62,12 @@ The centered locker opens on desktop mouse hover or the SHOP button; touch users
 
 Original clothing uploads were visible in chat but unavailable as workspace files. The four seed images have explicit placeholders until you upload photos in admin, or supply `public/assets/tee-black.webp`, `tee-white.webp`, `cap-black.webp`, and `cap-white.webp`. The logo was recovered from repository history. Oswald font licensing is included in `public/assets/Oswald-LICENSE.txt`.
 
+## Collection order
+
+In **Admin → Collections**, use the up/down arrows next to each collection. Each move saves immediately, independently of the collection editor, so unsaved description/name edits are retained. Refresh the storefront to see the new order in the collection dropdown, description cards, and product grouping. Order within each collection's product group is preserved.
+
+Draft collections can be arranged in advance but remain hidden from shoppers. New collections append to the end. Renaming, publishing, and restarting the service preserve the saved order. The order is stored in the existing SQLite settings without changing collection or product records. If another session has added/deleted a collection, reload the admin before moving items to avoid overwriting a stale list.
+
 ## Footer links
 
 Open **Admin → Footer links** to add, edit, reorder, or remove links. Each link has a label, destination, section (Support, Contact, or Socials), and an optional new-tab setting. Use HTTPS addresses for social profiles, `mailto:` for contact email, `tel:` for phone links, or an existing internal `/path`. Links are grouped by section; their saved order determines the order within each section. Adding a link does not create a destination page.

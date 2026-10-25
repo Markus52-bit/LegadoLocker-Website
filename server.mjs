@@ -59,6 +59,7 @@ export function createApp({store,uploadsDirectory,publicOrigin=process.env.PUBLI
      const bytes=Buffer.from(body.data,'base64');if(bytes.length>5*1024*1024)fail('Maximum photo size is 5 MB.',413);
      const extension=imageType(bytes);const filename=randomUUID()+'.'+extension;await writeFile(path.join(uploadsDirectory,filename),bytes,{flag:'wx',mode:0o600});return send(201,{image:'/uploads/'+filename});
     }
+    if(route==='/api/admin/collections/order'&&req.method==='PUT'){const body=await jsonBody(req);return send(200,{collections:store.reorderCollections(body.ids)});}
     const match=route.match(/^\/api\/admin\/(collections|products)(?:\/([a-zA-Z0-9-]+))?$/);
     if(match){const[,type,id]=match;
      if(req.method==='POST'&&!id){const item=validate(type,await jsonBody(req),null,store);return send(201,store.put(type,item));}
