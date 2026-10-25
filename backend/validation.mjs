@@ -13,9 +13,13 @@ export function validate(type,input,id,store){
  if(price!==null&&(!Number.isSafeInteger(price)||price<0||price>100000000))fail('Price must be a positive amount in minor currency units, or blank.');
  const currency=text(input.currency??'USD','Currency',3).toUpperCase();
  try{new Intl.NumberFormat('en',{style:'currency',currency});}catch{fail('Use a three-letter currency code.');}
- const image=text(input.image??'','Image',150,false);
- if(image&&!/^(?:[\w-]+\.(?:webp|png|jpg|jpeg)|\/uploads\/[a-f0-9-]+\.(?:webp|png|jpg))$/.test(image))fail('Upload a product photo or use a bundled image filename.');
- return {...item,kind:input.kind,color:text(input.color??'','Color',60,false),collectionId:input.collectionId,sizes,price,currency,image};
+ const existing=id?store.get('products',id):null;
+ let supplied;
+ if(Object.hasOwn(input,'images')){if(!Array.isArray(input.images))fail('Photos must be an array.');supplied=input.images;}
+ else if(Object.hasOwn(input,'image'))supplied=input.image===existing?.image?existing.images:(input.image?[input.image]:[]);
+ else supplied=existing?.images||[];
+ const images=[...new Set(supplied.map(value=>{const image=text(value,'Photo',150);if(!/^(?:[\w-]+\.(?:webp|png|jpg|jpeg)|\/uploads\/[a-f0-9-]+\.(?:webp|png|jpg))$/.test(image))fail('Upload product photos or use bundled image filenames.');return image;}))];
+ return {...item,kind:input.kind,color:text(input.color??'','Color',60,false),collectionId:input.collectionId,sizes,price,currency,images,image:images[0]||''};
 }
 export function imageType(bytes){
  if(bytes.length>8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'png';

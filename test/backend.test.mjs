@@ -58,3 +58,15 @@ test('database and password survive reopening; password changes revoke sessions'
 });
 test('sign-in attempts are rate limited',async t=>{const f=await fixture(t);for(let i=0;i<10;i++)assert.equal((await f.request('/api/admin/login','POST',{password:'bad'})).status,401);const response=await f.request('/api/admin/login','POST',{password:'bad'});assert.equal(response.status,429);assert.ok(response.headers.get('retry-after'));});
 test('production cookies are secure and enforce configured origin',async t=>{const f=await fixture(t,{production:true,publicOrigin:'https://shop.example'});const response=await f.request('/api/admin/login','POST',{password:f.password},{Origin:'https://shop.example'});assert.equal(response.status,200);assert.match(response.headers.get('set-cookie'),/; Secure/);assert.equal((await f.request('/api/admin/login','POST',{password:f.password},{Origin:f.base})).status,403);});
+
+test('product galleries preserve ordered photos, legacy covers and existing data across restart',async t=>{
+ const f=await fixture(t);await f.login();const original=f.store.get('products','tee-black');assert.deepEqual(original.images,['tee-black.webp']);
+ const images=Array.from({length:301},(_,i)=>`detail-${i}.webp`);const body={...original,images:[...images,images[0]]};const result=await f.request('/api/admin/products/tee-black','PUT',body);assert.equal(result.status,200);const saved=await result.json();assert.deepEqual(saved.images,images);assert.equal(saved.image,images[0]);
+ const catalog=await(await f.request('/api/catalog')).json();assert.deepEqual(catalog.products.find(p=>p.id==='tee-black').images,images);
+ const reopened=createStore(f.filename);try{assert.deepEqual(reopened.get('products','tee-black').images,images);}finally{reopened.close();}
+ const {images:ignored,...legacy}=saved;const edited=await(await f.request('/api/admin/products/tee-black','PUT',{...legacy,name:'Legacy edit'})).json();assert.deepEqual(edited.images,images);
+ assert.equal((await f.request('/api/admin/products/tee-black','PUT',{...saved,images:'not-an-array'})).status,400);
+ assert.equal((await f.request('/api/admin/products/tee-black','PUT',{...saved,images:['javascript:alert(1)']})).status,400);
+ assert.equal((await f.request('/api/admin/products/tee-black','PUT',{...saved,images:['']})).status,400);
+ const cleared=await(await f.request('/api/admin/products/tee-black','PUT',{...saved,images:[]})).json();assert.deepEqual(cleared.images,[]);assert.equal(cleared.image,'');
+});

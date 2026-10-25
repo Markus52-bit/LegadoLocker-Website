@@ -29,7 +29,7 @@ For hosting services without an interactive terminal, securely set **ADMIN_PASSW
 Open **`/admin` on the running Node site**, then sign in with the owner password.
 
 1. Select **Collections** and add a name and description. Leave **Published** unchecked for a draft, or check it to show the collection.
-2. Select **Pieces**. Enter a name, collection, category, color, sizes/fits, optional price and currency, and description. Upload a PNG, JPEG, or WebP up to 5 MB.
+2. Select **Pieces**. Enter a name, collection, category, color, sizes/fits, optional price and currency, and description. Select multiple PNG, JPEG, or WebP photos, up to 5 MB each. You can add more photos in later batches; there is no fixed photo-count limit beyond available storage. The first photo is the cover. Use Make cover, earlier/later arrows, and Remove to arrange the gallery, then save the piece.
 3. Save as a draft, or check **Published** and save. A piece appears only when both the piece and its collection are published. Refresh the storefront to load updates.
 4. Select an existing item to edit or delete it. A collection cannot be deleted while pieces belong to it; move/delete those pieces first. Prefer unpublishing to permanently deleting.
 
@@ -61,6 +61,14 @@ Root `index.html` loads assets from `public/` for the existing GitHub Pages site
 The centered locker opens on desktop mouse hover or the SHOP button; touch users use SHOP. Keyboard activation and reduced-motion preferences are supported. Direct section links bypass the entrance. Without JavaScript, the storefront shell is visible, but product rendering and the cart require JavaScript.
 
 Original clothing uploads were visible in chat but unavailable as workspace files. The four seed images have explicit placeholders until you upload photos in admin, or supply `public/assets/tee-black.webp`, `tee-white.webp`, `cap-black.webp`, and `cap-white.webp`. The logo was recovered from repository history. Oswald font licensing is included in `public/assets/Oswald-LICENSE.txt`.
+
+## Product photo galleries
+
+Product cards automatically cycle through their photos every five seconds. Each gallery has previous/next controls, a position counter, and a pause/play button. Automatic cycling pauses on mouse hover, keyboard focus, when offscreen, and when the browser tab is hidden. Reduced-motion preferences disable automatic cycling and transitions; manual navigation remains available. Customers can also use keyboard arrows or swipe horizontally on touch screens. Product details open a manual gallery so customers can examine each view while selecting a size.
+
+There is no fixed photo-count cap. Each upload retains the 5 MB limit and is uploaded separately, so adding many photos does not create one oversized request. First/next images load as needed instead of fetching every full-resolution image at once. Storage is still bounded by the persistent disk on your hosting plan. Removing a photo from a piece removes its reference, not the file from disk, consistent with the existing upload-retention policy. Successful uploads are retained in the editor if a later upload/save fails, so retrying does not upload those photos again.
+
+Existing products keep their original cover automatically. Catalog responses include an ordered `images` array and retain `image` as the first photo for compatibility. Existing multi-photo galleries survive edits from legacy clients that submit the unchanged cover. Catalog and order data are preserved; no database reset or manual migration is needed.
 
 ## Customer accounts
 

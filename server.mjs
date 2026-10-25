@@ -8,7 +8,7 @@ import {fail,validate,imageType} from './backend/validation.mjs';
 import {createFeatures} from './backend/features.mjs';
 const root=path.resolve(fileURLToPath(new URL('./public/',import.meta.url)));
 export const dataDirectory=path.resolve(process.env.DATA_DIR||fileURLToPath(new URL('./data/',import.meta.url)));
-const types={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.jpg':'image/jpeg','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'};
+const types={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2'};
 async function jsonBody(req){
  if(!req.headers['content-type']?.startsWith('application/json'))fail('Use application/json.',415);
  const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>7*1024*1024)fail('Request too large. Maximum photo size is 5 MB.',413);chunks.push(chunk);}

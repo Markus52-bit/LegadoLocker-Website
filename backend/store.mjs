@@ -2,6 +2,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {randomBytes,createHash,scrypt as scryptCallback,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {products as initialProducts} from '../public/catalog.js';
+import {productPhotos} from '../public/photos.js';
+const normalizeProduct=p=>({...p,images:productPhotos(p)});
 const scrypt=promisify(scryptCallback);
 export const digest=token=>createHash('sha256').update(token).digest('hex');
 export function createStore(filename){
@@ -20,9 +22,9 @@ export function createStore(filename){
  }
  const store={
   db,
-  list(type){return db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} ORDER BY rowid`).all().map(row=>JSON.parse(row.data));},
+  list(type){return db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} ORDER BY rowid`).all().map(row=>{const item=JSON.parse(row.data);return type==='products'?normalizeProduct(item):item;});},
   catalog(){const collections=store.list('collections').filter(c=>c.published);return {collections,products:store.list('products').filter(p=>p.published&&collections.some(c=>c.id===p.collectionId))};},
-  get(type,id){const row=db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} WHERE id=?`).get(id);return row?JSON.parse(row.data):null;},
+  get(type,id){const row=db.prepare(`SELECT data FROM ${type==='products'?'products':'collections'} WHERE id=?`).get(id);return row?(type==='products'?normalizeProduct(JSON.parse(row.data)):JSON.parse(row.data)):null;},
   put(type,item){if(type==='products')db.prepare('INSERT INTO products VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET collection_id=excluded.collection_id,data=excluded.data').run(item.id,item.collectionId,JSON.stringify(item));else db.prepare('INSERT INTO collections VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data').run(item.id,JSON.stringify(item));return item;},
   remove(type,id){if(type==='collections'&&db.prepare('SELECT id FROM products WHERE collection_id=? LIMIT 1').get(id))return false;db.prepare(`DELETE FROM ${type==='products'?'products':'collections'} WHERE id=?`).run(id);return true;},
   hasPassword(){return !!db.prepare("SELECT value FROM settings WHERE key='password'").get();},
