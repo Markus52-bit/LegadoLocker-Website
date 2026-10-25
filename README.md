@@ -62,6 +62,12 @@ The centered locker opens on desktop mouse hover or the SHOP button; touch users
 
 Original clothing uploads were visible in chat but unavailable as workspace files. The four seed images have explicit placeholders until you upload photos in admin, or supply `public/assets/tee-black.webp`, `tee-white.webp`, `cap-black.webp`, and `cap-white.webp`. The logo was recovered from repository history. Oswald font licensing is included in `public/assets/Oswald-LICENSE.txt`.
 
+## Collection sticky notes
+
+Each published collection appears as a paper sticky note attached to the locker door, in the saved collection order. Selecting a note opens the door and takes the shopper to that collection's description and products. Draft collections stay hidden. Additional notes scroll within the door on desktop and mobile; there is no fixed collection-count cap.
+
+Desktop hover has a short intent delay and pauses over the notes so shoppers can choose a collection. Hovering the bare door or selecting SHOP still opens all collections. Notes are keyboard accessible and honor reduced-motion preferences. Updates to collection names, publishing, and ordering appear on the next homepage load.
+
 ## Collection order
 
 In **Admin → Collections**, use the up/down arrows next to each collection. Each move saves immediately, independently of the collection editor, so unsaved description/name edits are retained. Refresh the storefront to see the new order in the collection dropdown, description cards, and product grouping. Order within each collection's product group is preserved.
