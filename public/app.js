@@ -2,7 +2,7 @@ import {products,validBag,addItem} from './catalog.js';
 const $ = selector=>document.querySelector(selector);
 let bag=[];
 try {bag=validBag(JSON.parse(localStorage.getItem('legado-bag') || '[]'));} catch {}
-const visual = p=>`<div class="product-visual ${p.color.toLowerCase()}"><span class="visual-label">FALLEN ANGEL / ${p.kind==='tee'?'01':'02'}</span><span class="motif" aria-hidden="true">✦</span><span class="visual-note">PRODUCT PHOTOGRAPHY COMING SOON</span><img src="/assets/${p.image}" alt="${p.color} ${p.name}" hidden></div>`;
+const visual = p=>`<div class="product-visual ${p.color.toLowerCase()}"><span class="visual-label">FALLEN ANGEL / ${p.kind==='tee'?'01':'02'}</span><span class="motif" aria-hidden="true">✦</span><span class="visual-note">PRODUCT PHOTOGRAPHY COMING SOON</span><img src="${new URL(`./assets/${p.image}`, import.meta.url).href}" alt="${p.color} ${p.name}" hidden></div>`;
 function loadImages(){document.querySelectorAll('.product-visual img').forEach(img=>{img.onload=()=>{img.hidden=false;};img.onerror=()=>{img.remove();};if(img.complete && img.naturalWidth) img.hidden=false;});}
 function renderProducts(filter='all'){
   const items=products.filter(p=>filter==='all'||p.kind===filter);

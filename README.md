@@ -21,3 +21,7 @@ The logo was recovered from repository history and matches the logo shared in ch
 ## Environment
 
 Use the existing isolated checkout; no Git worktree is needed. Start `npm run dev` after a new task begins; live processes do not survive environment snapshots. Validate the homepage and logo with local HTTP requests. This server is for development; deploy `public/` to a static host for production after completing the launch checklist.
+
+## GitHub Pages
+
+Publish the `main` branch from `/ (root)`. Root `index.html` loads the storefront assets from `public/`; `CNAME` preserves legadolocker.com. After editing page markup, update both HTML entry points. The Node development server continues to serve `public/` directly.
