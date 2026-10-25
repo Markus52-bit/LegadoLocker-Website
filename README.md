@@ -62,6 +62,12 @@ The centered locker opens on desktop mouse hover or the SHOP button; touch users
 
 Original clothing uploads were visible in chat but unavailable as workspace files. The four seed images have explicit placeholders until you upload photos in admin, or supply `public/assets/tee-black.webp`, `tee-white.webp`, `cap-black.webp`, and `cap-white.webp`. The logo was recovered from repository history. Oswald font licensing is included in `public/assets/Oswald-LICENSE.txt`.
 
+## Dynamic collection hero
+
+The homepage hero features the first published collection in the saved collection order by default. Choosing a collection from the storefront dropdown or locker sticky notes updates the hero title, collection number, description preview, product colors/categories, image caption, announcement, and browser title. All collections returns to the first published collection. The hero's Shop the Collection button selects that featured collection and shows its products.
+
+The hero uses the first available product cover photo in that collection, falling back through other product covers and finally to the brand logo. Product photo edits and cover ordering in the existing admin control this image; no additional upload setting is required. Full collection descriptions remain above the product grid, while the hero shows a preview up to 280 characters. With no published collections, the hero uses general Legado Locker branding and a coming-soon message. Publishing, editing, or reordering collections takes effect on the next storefront refresh.
+
 ## Collection sticky notes
 
 Each published collection appears as a paper sticky note attached to the locker door, in the saved collection order. Selecting a note opens the door and takes the shopper to that collection's description and products. Draft collections stay hidden. Additional notes scroll within the door on desktop and mobile; there is no fixed collection-count cap.

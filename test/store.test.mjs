@@ -11,7 +11,7 @@ test('quantity stays capped',()=>assert.equal(addItem([{id:'cap-black',size:'Adj
 test('HTTP serves store, code and actual logo; missing paths return 404',async()=>{
  const store=createStore(':memory:');const server=createApp({store});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- try {const base='http://127.0.0.1:'+server.address().port;const page=await fetch(base);assert.equal(page.status,200);assert.match(await page.text(),/Fallen Angel/);const logo=await fetch(base+'/assets/logo.jpg');assert.equal(logo.headers.get('content-type'),'image/jpeg');assert.ok((await logo.arrayBuffer()).byteLength>1000);const script=await fetch(base+'/app.js');assert.equal(script.status,200);assert.equal((await fetch(base+'/missing')).status,404);assert.equal((await fetch(base+'/package.json')).status,404);}finally{await new Promise(resolve=>server.close(resolve));store.close();}
+ try {const base='http://127.0.0.1:'+server.address().port;const page=await fetch(base);assert.equal(page.status,200);assert.match(await page.text(),/id="hero-title"/);const logo=await fetch(base+'/assets/logo.jpg');assert.equal(logo.headers.get('content-type'),'image/jpeg');assert.ok((await logo.arrayBuffer()).byteLength>1000);const script=await fetch(base+'/app.js');assert.equal(script.status,200);assert.equal((await fetch(base+'/missing')).status,404);assert.equal((await fetch(base+'/package.json')).status,404);}finally{await new Promise(resolve=>server.close(resolve));store.close();}
 });
 
 test('GitHub Pages entry point matches storefront and resolves its assets',async()=>{

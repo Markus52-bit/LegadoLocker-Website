@@ -1,3 +1,4 @@
+import {initHero} from './hero.js';
 import {initFooterLinks} from './footer.js';
 import {productPhotos} from './photos.js';
 import {mountGalleries} from './gallery.js';
@@ -18,11 +19,15 @@ try{
 try{bag=validBag(JSON.parse(localStorage.getItem('legado-bag')||'[]'));}catch{}
 const photoURL=image=>image.startsWith('/uploads/')?image:new URL(`./assets/${image}`,import.meta.url).href;
 let clearProductGalleries=()=>{},clearDetailGallery=()=>{};
+function selectCollection(id){filter='all';$('#collection-select').value=id;document.querySelectorAll('.filter').forEach(button=>{const active=button.dataset.filter==='all';button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});renderProducts();}
+const updateHero=initHero({collections,products,photoURL,selectCollection});
 function visual(p){const collection=collections.find(c=>c.id===p.collectionId);return `<div class="product-visual ${p.color.toLowerCase()==='white'?'white':'black'}"><span class="visual-label">${escape(collection?.name||'LEGADO')} / ${escape(category[p.kind])}</span><span class="motif" aria-hidden="true">✦</span><span class="visual-note">PRODUCT PHOTOGRAPHY COMING SOON</span></div>`;}
 function gallery(p,detail=false){const photos=productPhotos(p);const content=visual(p);return `<div class="product-gallery ${detail?'detail-gallery':''}" data-gallery data-images="${escape(JSON.stringify(photos.map(photoURL)))}" data-photo-alt="${escape(p.color+' '+p.name)}" role="group" aria-label="${escape(p.name)} photos">${detail?content:`<button class="product-open product-photo-open" data-product="${escape(p.id)}" aria-label="View ${escape(p.color)} ${escape(p.name)}">${content}</button>`}${photos.length>1?`<div class="gallery-controls"><button type="button" data-gallery-prev aria-label="Previous photo of ${escape(p.name)}">←</button><span data-gallery-counter aria-label="Photo position">1 / ${photos.length}</span><button type="button" data-gallery-next aria-label="Next photo of ${escape(p.name)}">→</button>${detail?'':'<button type="button" data-gallery-pause aria-label="Pause automatic photos" aria-pressed="false">Pause</button>'}</div>`:''}</div>`;}
 function renderProducts(){
  const collectionId=$('#collection-select').value;
+ updateHero(collectionId);
  const selectedCollection=collections.find(collection=>collection.id===collectionId);
+ $('#collection-eyebrow').textContent=selectedCollection?'COLLECTION '+String(collections.indexOf(selectedCollection)+1).padStart(3,'0'):'EXPLORE THE COLLECTIONS';
  $('#collection-title').textContent=selectedCollection?.name||'THE LINEUP.';
  const described=collections.filter(collection=>(!collectionId||collection.id===collectionId)&&collection.description?.trim());
  const descriptions=$('#collection-descriptions');descriptions.hidden=!described.length;
@@ -54,7 +59,7 @@ document.addEventListener('click',e=>{
 $('#collection-select').innerHTML='<option value="">All collections</option>'+collections.map(c=>`<option value="${escape(c.id)}">${escape(c.name)}</option>`).join('');
 $('#collection-select').addEventListener('change',renderProducts);
 if(catalogError){$('#catalog-message').hidden=false;$('#catalog-message').textContent='Live catalog is temporarily unavailable. Showing the original collection; please check back for updates.';}
-$('#year').textContent=new Date().getFullYear();renderProducts();saveBag();initLocker(collections,id=>{filter='all';$('#collection-select').value=id;document.querySelectorAll('.filter').forEach(button=>{const active=button.dataset.filter==='all';button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});renderProducts();});
+$('#year').textContent=new Date().getFullYear();renderProducts();saveBag();initLocker(collections,selectCollection);
 
 try{const r=await fetch('/api/features',{cache:'no-store'});if(r.ok){const features=await r.json();if(features.checkoutReady){$('#checkout-button').disabled=false;$('#checkout-button').textContent='Secure checkout ↗';$('#checkout-note').textContent='Sign in to your verified customer account to check out securely with Stripe. Shipping and tax are shown before payment.';}else $('#checkout-note').textContent='Checkout is not available yet. Check back for the next drop.';}else $('#checkout-note').textContent='Checkout is not available yet.';}catch{$('#checkout-note').textContent='Checkout is temporarily unavailable.';}
 $('#checkout-button').addEventListener('click',async()=>{if(!bag.length){$('#checkout-note').textContent='Add a piece to your bag first.';return;}$('#checkout-button').disabled=true;try{const r=await fetch('/api/customer/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:bag,discountCode:$('#checkout-discount').value})});const data=await r.json();if(r.status===401){location.assign('/account');return;}if(!r.ok)throw Error(data.error);if(!data.url?.startsWith('https://checkout.stripe.com/'))throw Error('Invalid checkout address.');location.assign(data.url);}catch(error){$('#checkout-note').textContent=error.message;}finally{$('#checkout-button').disabled=false;}});
