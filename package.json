@@ -1,1 +1,15 @@
-{"name":"legado-locker","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.mjs","dev":"node --watch server.mjs","test":"node --test"},"engines":{"node":">=22"}}
+{
+  "name": "legado-locker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test",
+    "admin:password": "node scripts/admin-password.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

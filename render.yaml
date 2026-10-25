@@ -1,0 +1,25 @@
+# Optional deployment template. Creating a Render service with this disk is paid.
+services:
+  - type: web
+    name: legado-locker
+    runtime: node
+    plan: starter
+    numInstances: 1
+    buildCommand: node --check server.mjs
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: legado-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
