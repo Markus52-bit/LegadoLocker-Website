@@ -1,3 +1,4 @@
+import {initLocker} from './locker.js';
 import {products,validBag,addItem} from './catalog.js';
 const $ = selector=>document.querySelector(selector);
 let bag=[];
@@ -15,3 +16,5 @@ function renderBag(){saveBag();$('#bag-items').innerHTML=bag.length ? bag.map((i
 let toast;
 document.addEventListener('click',e=>{const button=e.target.closest('button');if(!button)return;if(button.dataset.close){$('#'+button.dataset.close).close();return;}if(button.dataset.filter){document.querySelectorAll('.filter').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button));});renderProducts(button.dataset.filter);}if(button.dataset.product)openProduct(button.dataset.product);if(button.id==='add-to-bag'){bag=addItem(bag,button.dataset.id,$('#size').value);saveBag();$('#product-dialog').close();$('#status').textContent='Added to your bag';$('#status').classList.add('visible');clearTimeout(toast);toast=setTimeout(()=>$('#status').classList.remove('visible'),2500);}if(button.id==='open-bag'){renderBag();$('#bag-dialog').showModal();}if(button.dataset.remove!==undefined){bag.splice(Number(button.dataset.remove),1);renderBag();}if(button.dataset.quantity!==undefined){const item=bag[Number(button.dataset.quantity)];item.quantity=Math.min(99,item.quantity+Number(button.dataset.delta));bag=validBag(bag);renderBag();}});
 $('#year').textContent=new Date().getFullYear();renderProducts();saveBag();
+
+initLocker();

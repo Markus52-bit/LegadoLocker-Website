@@ -25,3 +25,7 @@ Use the existing isolated checkout; no Git worktree is needed. Start `npm run de
 ## GitHub Pages
 
 Publish the `main` branch from `/ (root)`. Root `index.html` loads the storefront assets from `public/`; `CNAME` preserves legadolocker.com. After editing page markup, update both HTML entry points. The Node development server continues to serve `public/` directly.
+
+## Locker entrance
+
+The homepage starts at a centered locker. On devices with a fine mouse pointer and hover support, moving over the locker opens its hinged door and transitions into the storefront. On touch devices, use the SHOP button. The same button supports keyboard activation. Reduced-motion preferences skip the movement. Direct section links bypass the entrance, and the storefront remains available when JavaScript is disabled. The entrance appears on each fresh homepage load.

@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#101010"><meta name="description" content="Legado Locker. Discover the Fallen Angel collection of tees and caps in black and white."><title>Legado Locker — Fallen Angel</title><link rel="stylesheet" href="./style.css"><script src="./app.js" type="module"></script></head>
-<body><div class="announcement">LEGADO LOCKER <span>✦</span> FALLEN ANGEL COLLECTION</div>
+<body>
+<section id="locker-entrance" class="locker-entrance" aria-label="Enter Legado Locker" hidden>
+  <p class="entrance-brand">LEGADO LOCKER</p>
+  <div class="locker-scene" id="locker-scene">
+    <div class="locker-cabinet" aria-hidden="true">
+      <div class="locker-inside"><span>✦</span><p>YOUR LEGACY<br>STARTS HERE</p></div>
+      <div class="locker-door"><div class="locker-vents top"></div><span class="locker-number">001</span><div class="locker-logo"></div><div class="locker-handle"></div><div class="locker-vents bottom"></div></div>
+    </div>
+  </div>
+  <button id="enter-shop" class="entrance-shop" aria-label="Shop — open the locker">SHOP <span aria-hidden="true">↗</span></button>
+  <p class="entrance-hint"><span class="hover-hint">HOVER OVER THE LOCKER OR SELECT SHOP</span><span class="touch-hint">OPEN THE LOCKER. FIND YOUR LEGACY.</span></p>
+</section>
+<div id="storefront"><div class="announcement">LEGADO LOCKER <span>✦</span> FALLEN ANGEL COLLECTION</div>
 <header><a href="#" class="wordmark" aria-label="Legado Locker home">LEGADO <span>LOCKER</span></a><nav aria-label="Main navigation"><a href="#collection">Collection</a><a href="#story">Our story</a><button id="open-bag">Bag (<span id="bag-count">0</span>)</button></nav></header>
 <main><section class="hero"><div class="hero-copy"><p class="eyebrow">COLLECTION 001 / FALLEN ANGEL</p><h1>Wear your<br><em>legacy.</em></h1><p class="intro">For the ones who carve their own path.<br>Dark expression. A lasting impression.</p><a class="button light" href="#collection">Explore the collection <span>↗</span></a><div class="hero-bottom">BLACK & WHITE <span>✦</span> TEES & HEADWEAR</div></div><div class="hero-art"><img src="./assets/logo.jpg" alt="Legado Locker silver emblem and wordmark"><span class="art-caption">THE LEGACY LIVES WITH YOU</span></div></section>
 <div class="ticker" aria-hidden="true">FORGED IN LEGACY <span>✦</span> WORN WITH PURPOSE <span>✦</span> LEGADO LOCKER <span>✦</span> FORGED IN LEGACY</div>
@@ -9,4 +21,4 @@
 <section class="details"><div><span>01</span><h3>Distinctive artwork</h3><p>Angels, wings, and stars define the collection.</p></div><div><span>02</span><h3>Black or white</h3><p>Choose the shade that tells your story.</p></div><div><span>03</span><h3>A new chapter</h3><p>The first collection from Legado Locker.</p></div></section></main>
 <footer><a href="#" class="wordmark">LEGADO LOCKER</a><p>YOUR STORY. YOUR LEGACY.</p><small>© <span id="year"></span> Legado Locker</small></footer>
 <dialog id="product-dialog" aria-labelledby="product-title"><button class="close" data-close="product-dialog" aria-label="Close product details">×</button><div id="product-detail"></div></dialog>
-<dialog id="bag-dialog" aria-labelledby="bag-title"><div class="bag-heading"><h2 id="bag-title">Your bag</h2><button class="close" data-close="bag-dialog" aria-label="Close bag">×</button></div><div id="bag-items"></div><p class="checkout-note">This collection is being prepared for launch. Prices, availability, and checkout will be announced here.</p><button class="button" disabled>Checkout coming soon</button><button class="continue" data-close="bag-dialog">Continue exploring ↗</button></dialog><p id="status" class="status" role="status"></p></body></html>
+<dialog id="bag-dialog" aria-labelledby="bag-title"><div class="bag-heading"><h2 id="bag-title">Your bag</h2><button class="close" data-close="bag-dialog" aria-label="Close bag">×</button></div><div id="bag-items"></div><p class="checkout-note">This collection is being prepared for launch. Prices, availability, and checkout will be announced here.</p><button class="button" disabled>Checkout coming soon</button><button class="continue" data-close="bag-dialog">Continue exploring ↗</button></dialog><p id="status" class="status" role="status"></p></div></body></html>
