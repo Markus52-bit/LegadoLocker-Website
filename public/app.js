@@ -20,6 +20,11 @@ function visual(p){const collection=collections.find(c=>c.id===p.collectionId);r
 function gallery(p,detail=false){const photos=productPhotos(p);const content=visual(p);return `<div class="product-gallery ${detail?'detail-gallery':''}" data-gallery data-images="${escape(JSON.stringify(photos.map(photoURL)))}" data-photo-alt="${escape(p.color+' '+p.name)}" role="group" aria-label="${escape(p.name)} photos">${detail?content:`<button class="product-open product-photo-open" data-product="${escape(p.id)}" aria-label="View ${escape(p.color)} ${escape(p.name)}">${content}</button>`}${photos.length>1?`<div class="gallery-controls"><button type="button" data-gallery-prev aria-label="Previous photo of ${escape(p.name)}">←</button><span data-gallery-counter aria-label="Photo position">1 / ${photos.length}</span><button type="button" data-gallery-next aria-label="Next photo of ${escape(p.name)}">→</button>${detail?'':'<button type="button" data-gallery-pause aria-label="Pause automatic photos" aria-pressed="false">Pause</button>'}</div>`:''}</div>`;}
 function renderProducts(){
  const collectionId=$('#collection-select').value;
+ const selectedCollection=collections.find(collection=>collection.id===collectionId);
+ $('#collection-title').textContent=selectedCollection?.name||'THE LINEUP.';
+ const described=collections.filter(collection=>(!collectionId||collection.id===collectionId)&&collection.description?.trim());
+ const descriptions=$('#collection-descriptions');descriptions.hidden=!described.length;
+ descriptions.innerHTML=described.map(collection=>`<article class="collection-note">${selectedCollection?'':`<h3>${escape(collection.name)}</h3>`}<p>${escape(collection.description)}</p></article>`).join('');
  const items=products.filter(p=>(filter==='all'||p.kind===filter)&&(!collectionId||p.collectionId===collectionId));
  $('#result-count').textContent=items.length+' PIECES';
  clearProductGalleries();
