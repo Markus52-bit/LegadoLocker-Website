@@ -21,3 +21,12 @@
 .entrance-shop>span::before,.product-meta>span::before{content:'';position:absolute;width:14px;height:1.5px;right:-1px;top:5px;background:currentColor;transform:rotate(-45deg)}
 .collection-picker{display:flex;align-items:center;gap:18px;margin:15px 0 25px}.collection-picker label{margin:0;font:10px 'Courier New',monospace;letter-spacing:1px}.collection-picker select{max-width:280px;margin:0;font:12px 'Courier New',monospace}.has-photo .visual-note,.has-photo .motif,.has-photo .visual-label{visibility:hidden}.has-photo::before{display:none}.catalog-message,.empty-products{color:#bbb;font-size:12px;line-height:1.8}.collection-tools>div{display:flex;gap:6px;flex-wrap:wrap}.filter{margin:0}.collection-tools{gap:15px}.collection-tools>span{white-space:nowrap}.empty-products{grid-column:1/-1}
 #checkout-discount{width:100%;padding:12px;background:#222;color:#eee;border:1px solid #555;margin:0 0 20px;font:13px 'Courier New',monospace}@media(max-width:600px){header nav{gap:12px}header nav a[href='#collection']{display:none}}
+
+/* Fallen Angel artwork: edge detail with a quiet center for content. */
+:root{--fallen-art:url('./assets/fallen-angel-background.png')}
+body{background-color:#101010;background-image:linear-gradient(#10101060,#101010c9),var(--fallen-art);background-position:center top;background-size:cover;background-attachment:fixed}
+.locker-entrance{background-image:radial-gradient(ellipse at 50% 40%,#08080820 0%,#08080870 75%),var(--fallen-art);background-position:center;background-size:cover}
+.hero-copy{background-image:linear-gradient(90deg,#111111b8,#11111160),var(--fallen-art);background-position:left center;background-size:cover}
+.collection{background:linear-gradient(#101010e8,#101010bc 45%,#101010e8)}
+.details,footer,.footer-statement{background:#101010b8}
+@media(max-width:600px){body{background-attachment:scroll}.locker-entrance{background-position:60% center}.hero-copy{background-position:35% center}}
