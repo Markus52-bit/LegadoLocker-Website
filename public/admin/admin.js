@@ -1,3 +1,4 @@
+import {initFooterAdmin} from './footer.js';
 import {productPhotos} from '../photos.js';
 import {initOperations} from './operations.js';
 import {currencyFactor} from '../catalog.js';
@@ -6,7 +7,7 @@ const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 let catalog={products:[],collections:[]},tab='products',editing=null,photos=[],busy=false;
 function message(text,type=''){const target=$('#message');target.textContent=text;target.className=type;}
 async function api(route,method='GET',body){const response=await fetch('/api/admin/'+route,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});let data;try{data=await response.json();}catch{throw Error('The backend is unavailable. Open this admin page on the Node hosting service.');}if(!response.ok){if(response.status===401&&route!=='login')showLogin();throw Error(data.error||'Request failed.');}return data;}
-function showLogin(){document.dispatchEvent(new Event('admin-logout'));tab='products';$('#catalog-layout').hidden=false;$('#operations').hidden=true;document.querySelectorAll('[data-ops]').forEach(b=>b.classList.remove('active'));$('#login-panel').hidden=false;$('#dashboard').hidden=true;$('#logout').hidden=true;}
+function showLogin(){document.dispatchEvent(new Event('admin-logout'));tab='products';$('#catalog-layout').hidden=false;$('#operations').hidden=true;$('#footer-editor').hidden=true;$('#footer-tab').classList.remove('active');document.querySelectorAll('[data-ops]').forEach(b=>b.classList.remove('active'));$('#login-panel').hidden=false;$('#dashboard').hidden=true;$('#logout').hidden=true;}
 function showDashboard(){$('#login-panel').hidden=true;$('#dashboard').hidden=false;$('#logout').hidden=false;}
 function imageURL(value){return value.startsWith('/uploads/')?value:'/assets/'+value;}
 function discardPhotos(){for(const photo of photos)if(photo.preview)URL.revokeObjectURL(photo.preview);photos=[];}
@@ -33,10 +34,11 @@ function render(){
 }
 function edit(id=null){editing=id;const item=catalog[tab].find(i=>i.id===id);render();$('#item-form').reset();$('#product-fields').hidden=tab!=='products';$('#collectionId').required=tab==='products';$('#sizes').required=tab==='products';$('#currency').required=tab==='products';$('#editor-title').textContent=(item?'Edit ':'New ')+(tab==='products'?'piece':'collection');$('#item-form button[type=submit]').textContent=tab==='products'?'Save piece':'Save collection';$('#delete-item').hidden=!item;discardPhotos();photos=item&&tab==='products'?productPhotos(item).map(image=>({image})):[];renderPhotos();for(const key of ['name','description','color','kind','collectionId','currency'])if(item&&key in item)$('#'+key).value=item[key];$('#published').checked=item?.published||false;if(item&&tab==='products'){$('#sizes').value=item.sizes.join(', ');$('#price').step=String(1/currencyFactor(item.currency));$('#price').value=item.price===null?'':(item.price/currencyFactor(item.currency)).toFixed(Math.log10(currencyFactor(item.currency)));}}
 initOperations({api,message});
+initFooterAdmin({api,message});
 async function refresh(){catalog=await api('catalog');showDashboard();edit();}
 $('#login-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;busy=true;try{await api('login','POST',{password:$('#password').value});$('#password').value='';await refresh();message('Signed in. Welcome to the backroom.','success');}catch(error){message(error.message,'error');}finally{busy=false;}});
 $('#logout').addEventListener('click',async()=>{try{await api('logout','POST',{});showLogin();message('Signed out.');}catch(error){message(error.message,'error');}});
-document.addEventListener('click',e=>{if(busy)return;const button=e.target.closest('button');if(button?.dataset.tab){$('#catalog-layout').hidden=false;$('#operations').hidden=true;document.querySelectorAll('[data-ops]').forEach(b=>b.classList.remove('active'));tab=button.dataset.tab;edit();message('');}if(button?.dataset.edit){edit(button.dataset.edit);message('');}if(button?.id==='new-item'){edit();$('#name').focus();}if(button?.id==='remove-photo'){discardPhotos();$('#photo').value='';renderPhotos();}});
+document.addEventListener('click',e=>{if(busy)return;const button=e.target.closest('button');if(button?.dataset.tab){$('#catalog-layout').hidden=false;$('#operations').hidden=true;$('#footer-editor').hidden=true;$('#footer-tab').classList.remove('active');document.querySelectorAll('[data-ops]').forEach(b=>b.classList.remove('active'));tab=button.dataset.tab;edit();message('');}if(button?.dataset.edit){edit(button.dataset.edit);message('');}if(button?.id==='new-item'){edit();$('#name').focus();}if(button?.id==='remove-photo'){discardPhotos();$('#photo').value='';renderPhotos();}});
 $('#kind').addEventListener('change',()=>{if(!editing)$('#sizes').value=$('#kind').value==='cap'?'Adjustable':'S, M, L, XL, XXL';});
 $('#photo').addEventListener('change',()=>{
  if(busy)return;const files=[...$('#photo').files];let rejected=0;

@@ -1,3 +1,4 @@
+import {readFooterLinks,saveFooterLinks} from './footer-links.mjs';
 import {randomUUID} from 'node:crypto';
 import {createCommerce,email,text} from './commerce.mjs';
 import {createMailer} from './mailer.mjs';
@@ -17,6 +18,8 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
  return {
   commerce,payments,
   async handle({req,res,route,url,send,authenticated,jsonBody}){
+   if(route==='/api/footer-links'&&req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}
+   if(route==='/api/admin/footer-links'){if(!authenticated)fail('Sign in to manage your store.',401);if(req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}if(req.method==='PUT'){const body=await jsonBody(req);send(200,{links:saveFooterLinks(store,body.links)});return true;}fail('Method not allowed.',405);}
    if(route==='/api/features'&&req.method==='GET'){send(200,{accountsReady:!!mailer.ready&&!!origin,checkoutReady:payments.ready});return true;}
    if(route==='/api/email/unsubscribe'&&req.method==='POST'){commerce.unsubscribe(url.searchParams.get('token'));send(200,{ok:true});return true;}
    if(route.startsWith('/api/customer/')){

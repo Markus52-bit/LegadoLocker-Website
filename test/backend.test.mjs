@@ -70,3 +70,15 @@ test('product galleries preserve ordered photos, legacy covers and existing data
  assert.equal((await f.request('/api/admin/products/tee-black','PUT',{...saved,images:['']})).status,400);
  const cleared=await(await f.request('/api/admin/products/tee-black','PUT',{...saved,images:[]})).json();assert.deepEqual(cleared.images,[]);assert.equal(cleared.image,'');
 });
+
+test('footer links require owner access, validate destinations and persist without changing store data',async t=>{
+ const f=await fixture(t);const links=[{id:'support',label:'Help & FAQs',url:'/#collection',group:'support',newTab:false},{id:'contact',label:'Contact us',url:'mailto:hello@example.com',group:'contact',newTab:false},{id:'instagram',label:'Instagram',url:'https://www.instagram.com/legadolocker/',group:'social',newTab:true},{id:'phone',label:'Call us',url:'tel:+15551234567',group:'contact',newTab:false}];
+ assert.equal((await f.request('/api/admin/footer-links')).status,401);assert.equal((await f.request('/api/admin/footer-links','PUT',{links})).status,401);assert.deepEqual(await(await f.request('/api/footer-links')).json(),{links:[]});
+ await f.login();const saved=await f.request('/api/admin/footer-links','PUT',{links});assert.equal(saved.status,200);assert.deepEqual((await saved.json()).links,links);assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,links);
+ const reopened=createStore(f.filename);try{assert.deepEqual(JSON.parse(reopened.db.prepare("SELECT value FROM settings WHERE key='footer-links'").get().value),links);assert.equal(await reopened.verifyPassword(f.password),true);assert.equal(reopened.catalog().products.length,4);}finally{reopened.close();}
+ for(const url of ['javascript:alert(1)','data:text/html,<script>alert(1)</script>','//evil.example','/\\evil.example','https://user:password@example.com'])assert.equal((await f.request('/api/admin/footer-links','PUT',{links:[{...links[0],url}]})).status,400);
+ assert.equal((await f.request('/api/admin/footer-links','PUT',{links:[{...links[0],group:'unknown'}]})).status,400);assert.equal((await f.request('/api/admin/footer-links','PUT',{links:[links[0],links[0]]})).status,400);
+ assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,links,'invalid updates must leave existing links intact');
+ const reordered=[links[2],links[0]];assert.equal((await f.request('/api/admin/footer-links','PUT',{links:reordered})).status,200);assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,reordered);
+ assert.equal((await f.request('/api/admin/footer-links','PUT',{links:[]})).status,200);assert.deepEqual((await(await f.request('/api/footer-links')).json()).links,[]);
+});

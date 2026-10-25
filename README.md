@@ -62,6 +62,12 @@ The centered locker opens on desktop mouse hover or the SHOP button; touch users
 
 Original clothing uploads were visible in chat but unavailable as workspace files. The four seed images have explicit placeholders until you upload photos in admin, or supply `public/assets/tee-black.webp`, `tee-white.webp`, `cap-black.webp`, and `cap-white.webp`. The logo was recovered from repository history. Oswald font licensing is included in `public/assets/Oswald-LICENSE.txt`.
 
+## Footer links
+
+Open **Admin → Footer links** to add, edit, reorder, or remove links. Each link has a label, destination, section (Support, Contact, or Socials), and an optional new-tab setting. Use HTTPS addresses for social profiles, `mailto:` for contact email, `tel:` for phone links, or an existing internal `/path`. Links are grouped by section; their saved order determines the order within each section. Adding a link does not create a destination page.
+
+Select **Save footer links**, then refresh the storefront. Changes persist in SQLite across deployments/restarts; no code edit or rebuild is required. Empty sections are hidden. Removing every link and saving removes the footer link groups while keeping the brand and copyright. Only the owner can change links; the public endpoint exposes only the saved link list.
+
 ## Product photo galleries
 
 Product cards automatically cycle through their photos every five seconds. Each gallery has previous/next controls, a position counter, and a pause/play button. Automatic cycling pauses on mouse hover, keyboard focus, when offscreen, and when the browser tab is hidden. Reduced-motion preferences disable automatic cycling and transitions; manual navigation remains available. Customers can also use keyboard arrows or swipe horizontally on touch screens. Product details open a manual gallery so customers can examine each view while selecting a size.

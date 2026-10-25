@@ -1,8 +1,10 @@
+import {initFooterLinks} from './footer.js';
 import {productPhotos} from './photos.js';
 import {mountGalleries} from './gallery.js';
 import {initLocker} from './locker.js';
 import {products,collections,setCatalog,validBag,addItem,currencyFactor} from './catalog.js';
 const $=selector=>document.querySelector(selector);
+initFooterLinks();
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const category={tee:'T-shirt',cap:'Adjustable cap',hoodie:'Hoodie',other:'Piece'};
 const price=p=>p.price===null?'COMING SOON':new Intl.NumberFormat(undefined,{style:'currency',currency:p.currency}).format(p.price/currencyFactor(p.currency));
