@@ -82,7 +82,7 @@ Draft collections can be arranged in advance but remain hidden from shoppers. Ne
 
 ## Footer links
 
-Open **Admin → Footer links** to add, edit, reorder, or remove links. Each link has a label, destination, section (Support, Contact, or Socials), and an optional new-tab setting. Use HTTPS addresses for social profiles, `mailto:` for contact email, `tel:` for phone links, or an existing internal `/path`. Links are grouped by section; their saved order determines the order within each section. Adding a link does not create a destination page.
+Open **Admin → Footer links** to add, edit, reorder, or remove links. Use **+ Instagram button** or **+ TikTok button** to create a social button, replace the destination with your full profile URL, and save. Social links appear as footer buttons; Instagram and TikTok profile URLs receive matching icons. These shortcuts open in a new tab by default. Each link has a label, destination, section (Support, Contact, or Socials), and an optional new-tab setting. Use HTTPS addresses for social profiles, `mailto:` for contact email, `tel:` for phone links, or an existing internal `/path`. Links are grouped by section; their saved order determines the order within each section. Adding a link does not create a destination page.
 
 Select **Save footer links**, then refresh the storefront. Changes persist in SQLite across deployments/restarts; no code edit or rebuild is required. Empty sections are hidden. Removing every link and saving removes the footer link groups while keeping the brand and copyright. Only the owner can change links; the public endpoint exposes only the saved link list.
 
