@@ -18,7 +18,7 @@ async function fixture(t,{mailer,paymentConfig}={}){
 }
 test('customer verification, separate sessions, privacy, consent, and password reset',async t=>{
  const f=await fixture(t);const password=randomBytes(18).toString('hex');assert.equal((await f.request('/api/customer/register','POST',{email:'one@example.com',name:'One',password,marketingConsent:false})).status,202);
- assert.equal((await f.request('/api/customer/login','POST',{email:'one@example.com',password})).status,401);
+ const unverified=await f.request('/api/customer/login','POST',{email:'one@example.com',password});assert.equal(unverified.status,403);assert.match((await unverified.json()).error,/email needs verification/);assert.equal(unverified.headers.get('set-cookie'),null);const wrong=await f.request('/api/customer/login','POST',{email:'one@example.com',password:'incorrect-password'});assert.equal(wrong.status,401);assert.doesNotMatch((await wrong.json()).error,/needs verification/);
  const token=new URL(f.messages[0].text.match(/https:\/\/\S+\/account\?verify=\S+/)[0]).searchParams.get('verify');assert.equal((await f.request('/api/customer/verify','POST',{token})).status,200);assert.equal((await f.request('/api/customer/verify','POST',{token})).status,400);
  const login=await f.request('/api/customer/login','POST',{email:'one@example.com',password});const cookie=login.headers.get('set-cookie').split(';')[0];assert.match(login.headers.get('set-cookie'),/HttpOnly/);assert.equal((await f.request('/api/admin/operations','GET',null,cookie)).status,401);
  let me=await(await f.request('/api/customer/me','GET',null,cookie)).json();assert.equal(me.customer.marketingConsent,false);assert.ok(!JSON.stringify(me).includes('password'));
