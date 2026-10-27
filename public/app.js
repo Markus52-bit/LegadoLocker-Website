@@ -1,3 +1,4 @@
+import {initCheckout,checkoutProvider} from './checkout.js';
 import {initHero} from './hero.js';
 import {initFooterLinks} from './footer.js';
 import {productPhotos} from './photos.js';
@@ -8,7 +9,7 @@ const $=selector=>document.querySelector(selector);
 initFooterLinks();
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const category={tee:'T-shirt',cap:'Adjustable cap',hoodie:'Hoodie',other:'Piece'};
-const price=p=>p.price===null?'COMING SOON':new Intl.NumberFormat(undefined,{style:'currency',currency:p.currency}).format(p.price/currencyFactor(p.currency));
+const price=p=>p.price===null?(checkoutProvider==='shopify'&&Object.keys(p.shopifyVariants||{}).length?'PRICE AT CHECKOUT':'COMING SOON'):new Intl.NumberFormat(undefined,{style:'currency',currency:p.currency}).format(p.price/currencyFactor(p.currency));
 let bag=[],filter='all';
 let catalogError=false;
 try{
@@ -42,7 +43,7 @@ function saveBag(){try{localStorage.setItem('legado-bag',JSON.stringify(bag));}c
 function openProduct(id){
  const p=products.find(p=>p.id===id);if(!p)return;const collection=collections.find(c=>c.id===p.collectionId);
  clearDetailGallery();
- $('#product-detail').innerHTML=`<div class="product-detail-grid">${gallery(p,true)}<div><p class="eyebrow">${escape(collection?.name)}</p><h2 id="product-title">${escape(p.name)}</h2><p>${escape(p.color)} · ${escape(p.description||'A piece from the '+(collection?.name||'Legado Locker')+' collection.')}</p><p>${p.price===null?'Price and availability coming soon.':escape(price(p))}</p><label for="size">Select size / fit</label><select id="size">${p.sizes.map(s=>`<option>${escape(s)}</option>`).join('')}</select><button class="button" id="add-to-bag" data-id="${escape(p.id)}">Add to bag <span>+</span></button></div></div>`;$('#product-dialog').showModal();clearDetailGallery=mountGalleries($('#product-detail'),{autoplay:false});
+ $('#product-detail').innerHTML=`<div class="product-detail-grid">${gallery(p,true)}<div><p class="eyebrow">${escape(collection?.name)}</p><h2 id="product-title">${escape(p.name)}</h2><p>${escape(p.color)} · ${escape(p.description||'A piece from the '+(collection?.name||'Legado Locker')+' collection.')}</p><p>${escape(price(p))}</p>${checkoutProvider==='shopify'?'<p>Final price and stock are confirmed in Shopify checkout.</p>':''}<label for="size">Select size / fit</label><select id="size">${p.sizes.map(s=>`<option>${escape(s)}</option>`).join('')}</select><button class="button" id="add-to-bag" data-id="${escape(p.id)}">Add to bag <span>+</span></button></div></div>`;$('#product-dialog').showModal();clearDetailGallery=mountGalleries($('#product-detail'),{autoplay:false});if(checkoutProvider==='shopify'){const update=()=>{const available=Object.hasOwn(p.shopifyVariants||{},$('#size').value);$('#add-to-bag').disabled=!available;$('#add-to-bag').setAttribute('aria-label',available?'Add to bag':'This size is not yet available for checkout');};$('#size').addEventListener('change',update);update();}
 }
 function renderBag(){saveBag();$('#bag-items').innerHTML=bag.length?bag.map((item,i)=>{const p=products.find(p=>p.id===item.id);return `<div class="bag-row"><div>${escape(p.name)}<p>${escape(p.color)} / ${escape(item.size)}</p><div class="quantity"><button data-quantity="${i}" data-delta="-1" aria-label="Decrease quantity of ${escape(p.color)} ${escape(p.name)}">−</button><span>${item.quantity}</span><button data-quantity="${i}" data-delta="1" aria-label="Increase quantity of ${escape(p.color)} ${escape(p.name)}">+</button></div></div><button class="remove" data-remove="${i}" aria-label="Remove ${escape(p.color)} ${escape(p.name)}">Remove</button></div>`;}).join(''):'<p>Your bag is waiting for its first piece.</p>';}
 let toast;
@@ -61,7 +62,6 @@ $('#collection-select').addEventListener('change',renderProducts);
 if(catalogError){$('#catalog-message').hidden=false;$('#catalog-message').textContent='Live catalog is temporarily unavailable. Showing the original collection; please check back for updates.';}
 $('#year').textContent=new Date().getFullYear();renderProducts();saveBag();initLocker(collections,selectCollection);
 
-try{const r=await fetch('/api/features',{cache:'no-store'});if(r.ok){const features=await r.json();if(features.checkoutReady){$('#checkout-button').disabled=false;$('#checkout-button').textContent='Secure checkout ↗';$('#checkout-note').textContent='Sign in to your verified customer account to check out securely with Stripe. Shipping and tax are shown before payment.';}else $('#checkout-note').textContent='Checkout is not available yet. Check back for the next drop.';}else $('#checkout-note').textContent='Checkout is not available yet.';}catch{$('#checkout-note').textContent='Checkout is temporarily unavailable.';}
-$('#checkout-button').addEventListener('click',async()=>{if(!bag.length){$('#checkout-note').textContent='Add a piece to your bag first.';return;}$('#checkout-button').disabled=true;try{const r=await fetch('/api/customer/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:bag,discountCode:$('#checkout-discount').value})});const data=await r.json();if(r.status===401){location.assign('/account');return;}if(!r.ok)throw Error(data.error);if(!data.url?.startsWith('https://checkout.stripe.com/'))throw Error('Invalid checkout address.');location.assign(data.url);}catch(error){$('#checkout-note').textContent=error.message;}finally{$('#checkout-button').disabled=false;}});
+initCheckout({getBag:()=>bag,onReady:renderProducts,onPurchased:items=>{for(const item of items){const line=bag.find(b=>b.id===item.id&&b.size===item.size);if(line)line.quantity-=item.quantity;}bag=validBag(bag.filter(line=>line.quantity>0));saveBag();if($('#bag-dialog').open)renderBag();}});
 
 $('#product-dialog').addEventListener('close',()=>{clearDetailGallery();clearDetailGallery=()=>{};});

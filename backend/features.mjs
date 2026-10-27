@@ -1,3 +1,4 @@
+import {createShopify} from './shopify.mjs';
 import {readFooterLinks,saveFooterLinks} from './footer-links.mjs';
 import {randomUUID} from 'node:crypto';
 import {createCommerce,email,text} from './commerce.mjs';
@@ -9,18 +10,23 @@ const date=()=>new Date().toISOString();
 export function createFeatures({store,origin,production,mailer=createMailer(),paymentConfig=process.env}){
  const commerce=createCommerce(store),locks=new Set(),limits=new Map();
  const payments=createPayments({store,commerce,origin,config:paymentConfig});
+ const shopify=createShopify({store,commerce,config:paymentConfig});
+ const checkoutProvider=String(paymentConfig.CHECKOUT_PROVIDER||'stripe').trim().toLowerCase();
+ const checkoutReady=()=>checkoutProvider==='shopify'?shopify.ready:checkoutProvider==='stripe'&&payments.ready;
  const marketingReady=()=>mailer.ready&&!!mailer.address&&!!origin;
  function throttle(key,max=10){const at=Date.now();for(const [k,v]of limits)if(v.until<at)limits.delete(k);const entry=limits.get(key)||{count:0,until:at+15*60000};if(++entry.count>max)fail('Too many attempts. Please try again in 15 minutes.',429);limits.set(key,entry);}
  const customerCookie=(value,age)=>`legado_customer=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${age}${production?'; Secure':''}`;
  const customerOf=req=>{const cookie=(req.headers.cookie||'').split(';').map(c=>c.trim()).find(c=>c.startsWith('legado_customer='));return commerce.session(cookie?.slice(16));};
  async function accountEmail(customer,kind){const token=commerce.token(customer.id,kind);const link=origin+'/account?'+(kind==='verify'?'verify':'reset')+'='+token;await mailer.send({to:customer.email,subject:kind==='verify'?'Verify your Legado Locker account':'Reset your Legado Locker password',text:`Hi ${customer.name},\n\n${kind==='verify'?'Verify your email address to finish creating your account':'Choose a new account password'}:\n${link}\n\n${kind==='verify'?'This link expires in 24 hours.':'This link expires in one hour.'}\nIf you did not request this, you can ignore this email.`,idempotencyKey:kind+'-'+token});}
- const overview=()=>({customers:commerce.customers().map(({unsubscribeHash,...c})=>c),orders:commerce.list('orders'),discounts:commerce.list('discounts'),campaigns:commerce.list('campaigns').map(c=>({...c,counts:commerce.recipients(c.id).reduce((counts,r)=>(counts[r.status]=(counts[r.status]||0)+1,counts),{})})),emailReady:mailer.ready,marketingReady:marketingReady(),checkoutReady:payments.ready});
+ const overview=()=>({customers:commerce.customers().map(({unsubscribeHash,...c})=>c),orders:commerce.list('orders'),discounts:commerce.list('discounts'),campaigns:commerce.list('campaigns').map(c=>({...c,counts:commerce.recipients(c.id).reduce((counts,r)=>(counts[r.status]=(counts[r.status]||0)+1,counts),{})})),emailReady:mailer.ready,marketingReady:marketingReady(),checkoutReady:checkoutReady(),checkoutProvider,shopifyOrderSyncReady:shopify.orderSyncReady});
  return {
-  commerce,payments,
+  commerce,payments,shopify,
   async handle({req,res,route,url,send,authenticated,jsonBody}){
+   if(route==='/api/checkout'&&req.method==='POST'){if(checkoutProvider!=='shopify')fail('Shopify checkout is not enabled.',409);throttle('shopify-checkout:'+req.socket.remoteAddress,300);send(201,shopify.checkout(await jsonBody(req)));return true;}
+   if(route==='/api/checkout/status'&&req.method==='POST'){send(200,shopify.status((await jsonBody(req)).checkoutToken));return true;}
    if(route==='/api/footer-links'&&req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}
    if(route==='/api/admin/footer-links'){if(!authenticated)fail('Sign in to manage your store.',401);if(req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}if(req.method==='PUT'){const body=await jsonBody(req);send(200,{links:saveFooterLinks(store,body.links)});return true;}fail('Method not allowed.',405);}
-   if(route==='/api/features'&&req.method==='GET'){send(200,{accountsReady:!!mailer.ready&&!!origin,checkoutReady:payments.ready});return true;}
+   if(route==='/api/features'&&req.method==='GET'){send(200,{accountsReady:!!mailer.ready&&!!origin,checkoutReady:checkoutReady(),checkoutProvider,shopifyCheckoutOrigin:shopify.origin,shopifyOrderSyncReady:shopify.orderSyncReady});return true;}
    if(route==='/api/email/unsubscribe'&&req.method==='POST'){commerce.unsubscribe(url.searchParams.get('token'));send(200,{ok:true});return true;}
    if(route.startsWith('/api/customer/')){
     const action=route.slice('/api/customer/'.length);const customer=customerOf(req);
@@ -37,7 +43,7 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
     if(action==='me'&&req.method==='GET'){const {unsubscribeHash,...safe}=customer;send(200,{customer:safe,orders:commerce.customerOrders(customer)});return true;}
     if(action==='logout'&&req.method==='POST'){await jsonBody(req);const token=(req.headers.cookie||'').split(';').map(c=>c.trim()).find(c=>c.startsWith('legado_customer='))?.slice(16);commerce.logout(token);res.setHeader('Set-Cookie',customerCookie('',0));send(200,{ok:true});return true;}
     if(action==='preferences'&&req.method==='POST'){const body=await jsonBody(req);customer.marketingConsent=body.marketingConsent===true;customer.consentUpdatedAt=date();commerce.saveCustomer(customer);send(200,{ok:true});return true;}
-    if(action==='checkout'&&req.method==='POST'){throttle('checkout:'+customer.id,10);const body=await jsonBody(req);send(201,await payments.checkout(customer,body));return true;}
+    if(action==='checkout'&&req.method==='POST'){if(checkoutProvider!=='stripe')fail('Use the Shopify checkout button for this store.',409);throttle('checkout:'+customer.id,10);const body=await jsonBody(req);send(201,await payments.checkout(customer,body));return true;}
     fail('Endpoint not found.',404);
    }
    if(!route.startsWith('/api/admin/'))return false;
@@ -46,7 +52,7 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
    if(route==='/api/admin/operations'&&req.method==='GET'){send(200,overview());return true;}
    if(route==='/api/admin/orders'&&req.method==='POST'){send(201,commerce.createOrder(await jsonBody(req)));return true;}
    const orderMatch=route.match(/^\/api\/admin\/orders\/([a-zA-Z0-9-]+)(\/sync)?$/);
-   if(orderMatch&&req.method==='POST'){const order=commerce.get('orders',orderMatch[1]);if(!order)fail('Order not found.',404);const body=await jsonBody(req);
+   if(orderMatch&&req.method==='POST'){const order=commerce.get('orders',orderMatch[1]);if(!order)fail('Order not found.',404);if(order.source==='shopify')fail('Manage this order in Shopify; updates arrive through Shopify webhooks.',409);const body=await jsonBody(req);
     if(orderMatch[2]){send(200,await payments.sync(order));return true;}
     if(order.source==='stripe'&&(body.paymentStatus!==order.paymentStatus||body.refunded!==order.refunded))fail('Stripe payment and refund amounts update from Stripe. Use Sync payment, or issue refunds in Stripe.');send(200,commerce.updateOrder(order,body));return true;
    }

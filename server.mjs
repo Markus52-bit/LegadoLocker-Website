@@ -26,6 +26,7 @@ export function createApp({store,uploadsDirectory,publicOrigin=process.env.PUBLI
    const url=new URL(req.url,'http://localhost');const route=url.pathname;
    if(route==='/api/health'&&req.method==='GET'){store.db.prepare('SELECT 1').get();return send(200,{status:'ok'});}
    if(route==='/api/catalog'&&req.method==='GET')return send(200,store.catalog());
+   if(route==='/api/shopify/webhook'&&req.method==='POST'){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>2*1024*1024)fail('Webhook too large.',413);chunks.push(chunk);}return send(200,features.shopify.webhook(Buffer.concat(chunks),req.headers));}
    if(route==='/api/stripe/webhook'&&req.method==='POST'){
     const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>1024*1024)fail('Webhook too large.',413);chunks.push(chunk);}return send(200,await features.payments.webhook(Buffer.concat(chunks),req.headers['stripe-signature']));
    }

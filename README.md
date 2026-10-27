@@ -129,6 +129,35 @@ Manual entry is for sales taken elsewhere: it records an unpaid order and does n
 
 Stripe financial fields update from signed events or **Sync payment**; admins cannot manually mark Stripe payments/refunds as confirmed. Refund actual Stripe payments in Stripe, then sync or wait for the webhook. Fulfillment, returns, carrier details, and tracking links are managed by the owner. A tracking link does not connect live carrier events or buy a shipping label.
 
+## Shopify website checkout (without POS)
+
+A **Shopify store/account and a plan supporting online checkout are required**, even when only using Shopify for checkout. Your custom storefront remains on Render at `legadolocker.com`; this integration sends the bag to Shopify's hosted checkout through a cart permalink. No Shopify Storefront API or Admin API token is required for this handoff. It does not configure or use POS.
+
+### Activate
+
+1. Create the Shopify store. Keep its original `your-store.myshopify.com` address available. Do **not** move the existing `legadolocker.com` DNS records off Render. If configuring a branded Shopify domain later, use a separate appropriate subdomain and check redirects so the cart link does not loop back to the Render site.
+2. Create matching products, colors, and size variants in Shopify. Make them available for the online sales channel used by your store. Configure payments, shipping profiles/rates, tax, checkout, store access/password settings, and customer notifications in Shopify. Live carrier-calculated shipping depends on your Shopify plan and carrier integrations; this site does not calculate Shippo/Pirate Ship rates.
+3. In this site's **Admin → Pieces**, edit each item. Enter its **Shopify variant ID for each size** in the Shopify checkout links section. Use the numeric **variant** ID (not product ID), or `gid://shopify/ProductVariant/123456789`. A variant's Shopify admin detail URL contains its numeric ID. Save the piece. Blank sizes cannot check out. Keep your local display names, photos, and prices consistent with Shopify; this integration does not automatically synchronize the catalog.
+4. In **Render → Environment**, set `CHECKOUT_PROVIDER=shopify` and `SHOPIFY_STORE_DOMAIN=your-store.myshopify.com` (bare hostname, no `https://` or trailing slash). Keep `PUBLIC_ORIGIN=https://legadolocker.com`. Save and redeploy.
+5. The bag now offers **Checkout with Shopify**. Guest checkout is allowed without a website account or Resend configuration. Selected variants and quantities are validated against published local pieces and sent to Shopify. Final prices, stock, accepted discount codes, shipping, taxes, and payment methods are determined by Shopify. Website sign-in does not sign a customer into a Shopify customer account.
+
+Discount codes included in campaigns or entered in the bag **must also exist in Shopify**. The local Discounts admin manages only local/manual/Stripe discounts and does not create Shopify promotions. Shopify can reject unavailable variants or quantities at checkout. Local prices are display information; no browser-supplied price is sent to Shopify. Review your Shopify catalog and checkout configuration before accepting sales. No Shopify store was provisioned, plan purchased, or real payment made during implementation.
+
+If `CHECKOUT_PROVIDER` is omitted, the previous Stripe flow remains active. To return to it, set `CHECKOUT_PROVIDER=stripe` and retain its required settings. Historical Stripe orders and webhook processing remain available. Shopify checkout does not use your Stripe API keys or Stripe shipping settings; Shopify handles its own payment setup.
+
+### Mirror Shopify orders into this admin
+
+Order synchronization is optional for checkout, but required for Shopify orders to appear in the custom admin/customer history and for automatic local bag reconciliation after purchase:
+
+1. In **Shopify → Settings → Notifications → Webhooks** (or the corresponding webhook configuration area), add JSON webhooks for **Order creation** and **Order update**. Both use `https://legadolocker.com/api/shopify/webhook`. Order payment/cancellation topics are also supported if configured.
+2. Copy the webhook **signing secret** shown by Shopify into Render as `SHOPIFY_WEBHOOK_SECRET`, then redeploy. This is the webhook signing secret, not a Shopify API access token. Enter it securely in Render, not in chat or Git.
+3. Received order payloads must come from the configured original `.myshopify.com` domain and pass the Shopify HMAC check. The dashboard mirrors Shopify totals, financial status, refunds included in order payloads, fulfillment and tracking data, and order history. Duplicate/stale payloads do not overwrite newer records. Unknown partial-refund amounts are marked pending and excluded from payment summaries rather than invented.
+4. Shopify orders are read-only in this dashboard. Use **Manage order in Shopify** to capture/refund payments, fulfill, or update tracking. The site mirrors received order webhook snapshots; it does not independently poll carrier delivery events. Existing manual and Stripe orders continue to use their existing controls.
+
+Matching verified website customers can see Shopify orders by email, but Shopify guests are not automatically signed up for local marketing or customer accounts. With signed order webhooks connected, a private checkout reference reconciles purchased quantities from the same browser tab's bag when the shopper returns. Without the webhook, the local bag is not automatically cleared; payment and order confirmation remain available in Shopify. A short webhook delay may require a refresh. External Shopify checkout/thank-you navigation is managed by Shopify; configure available store navigation/branding links there to point shoppers back to your custom site.
+
+The integration was validated with local Shopify-shaped payloads and intercepted browser checkout navigation. No live Shopify account or order delivery has been verified in this cloud task; activation awaits the merchant's actual Shopify store and configuration.
+
 ## Connect Stripe checkout
 
 Create a Stripe account. Start with its test/sandbox credentials. In **Render → Environment**, add:
@@ -157,6 +186,6 @@ Test a full sandbox purchase, webhook delivery, order history, shipping details,
 
 ## Current limits
 
-There is one owner login, not separate staff roles. No stock levels/reservations, live carrier integration, purchased shipping labels, scheduled campaigns, delivery/open analytics, or accounting integration are implemented. Stripe handles card collection; the application never stores card details. Flat shipping and optional Stripe Tax cover checkout totals; more complex shipping rules require further work. Customer data, campaign queues, and orders live in the existing SQLite database, so retain the persistent disk and include it in backups. New tables are added without deleting catalog data. No email/payment credentials are supplied automatically by this repository.
+There is one owner login, not separate staff roles. No stock levels/reservations, live carrier integration, purchased shipping labels, scheduled campaigns, delivery/open analytics, or accounting integration are implemented. The configured checkout provider handles card collection; the application never stores card details. Flat shipping and optional Stripe Tax cover checkout totals; more complex shipping rules require further work. Customer data, campaign queues, and orders live in the existing SQLite database, so retain the persistent disk and include it in backups. New tables are added without deleting catalog data. No email/payment credentials are supplied automatically by this repository.
 
 Use the existing isolated checkout; do not create a Git worktree unless requested. Restart the server in new cloud tasks; running processes are not retained by snapshots.

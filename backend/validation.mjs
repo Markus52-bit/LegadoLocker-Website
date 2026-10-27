@@ -19,7 +19,10 @@ export function validate(type,input,id,store){
  else if(Object.hasOwn(input,'image'))supplied=input.image===existing?.image?existing.images:(input.image?[input.image]:[]);
  else supplied=existing?.images||[];
  const images=[...new Set(supplied.map(value=>{const image=text(value,'Photo',150);if(!/^(?:[\w-]+\.(?:webp|png|jpg|jpeg)|\/uploads\/[a-f0-9-]+\.(?:webp|png|jpg))$/.test(image))fail('Upload product photos or use bundled image filenames.');return image;}))];
- return {...item,kind:input.kind,color:text(input.color??'','Color',60,false),collectionId:input.collectionId,sizes,price,currency,images,image:images[0]||''};
+ const mapping=Object.hasOwn(input,'shopifyVariants')?input.shopifyVariants:Object.fromEntries(Object.entries(existing?.shopifyVariants||{}).filter(([size])=>sizes.includes(size)));
+ if(!mapping||typeof mapping!=='object'||Array.isArray(mapping))fail('Shopify variant mappings must be an object.');
+ const shopifyVariants=Object.fromEntries(Object.entries(mapping).map(([size,value])=>{if(!sizes.includes(size)||typeof value!=='string')fail('Match Shopify variants to existing sizes.');const variant=value.trim().replace(/^gid:\/\/shopify\/ProductVariant\//,'');if(!/^[1-9]\d{0,29}$/.test(variant))fail('Use numeric Shopify variant IDs or ProductVariant GIDs.');return [size,variant];}));
+ return {...item,kind:input.kind,color:text(input.color??'','Color',60,false),collectionId:input.collectionId,sizes,price,currency,shopifyVariants,images,image:images[0]||''};
 }
 export function imageType(bytes){
  if(bytes.length>8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'png';

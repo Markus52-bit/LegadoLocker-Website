@@ -54,7 +54,7 @@ export function createCommerce(store){
    const trackingUrl=text(input.trackingUrl||'','Tracking URL',1000,true);if(trackingUrl){try{if(new URL(trackingUrl).protocol!=='https:')fail('Tracking URLs must use HTTPS.');}catch{fail('Enter a valid HTTPS tracking URL.');}}
    const next={...order,status:input.status,paymentStatus:input.paymentStatus,refunded,paymentReference:text(input.paymentReference||'','Payment reference',300,true),carrier:text(input.carrier||'','Carrier',100,true),trackingNumber:text(input.trackingNumber||'','Tracking number',150,true),trackingUrl,updatedAt:now()};const note=text(input.note||'','Note',2000,true);next.timeline=[...order.timeline,{at:now(),event:`Status: ${next.status}; payment: ${next.paymentStatus}; refund: ${refunded}. Recorded manually.`,note,carrier:next.carrier,trackingNumber:next.trackingNumber,paymentReference:next.paymentReference}];return api.put('orders',next);
   },
-  customerOrders(customer){return api.list('orders').filter(o=>o.email===customer.email).map(({timeline,paymentReference,sourceReference,stripeSessionId,stripePaymentIntent,...o})=>o);},
+  customerOrders(customer){return api.list('orders').filter(o=>o.email===customer.email).map(({timeline,paymentReference,sourceReference,stripeSessionId,stripePaymentIntent,shopifyAdminUrl,...o})=>o);},
   recipients(id){return db.prepare('SELECT data FROM campaign_recipients WHERE campaign_id=?').all(id).map(r=>JSON.parse(r.data));},
   recipient(id,customerId,data){db.prepare('INSERT INTO campaign_recipients VALUES (?,?,?) ON CONFLICT(campaign_id,customer_id) DO UPDATE SET data=excluded.data').run(id,customerId,JSON.stringify(data));}
  };return api;
