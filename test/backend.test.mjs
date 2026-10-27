@@ -95,3 +95,15 @@ test('collection order controls catalog grouping, persists and survives edits an
  const last=await(await f.request('/api/admin/collections','POST',{name:'Latest Drop',description:'New collection',published:true})).json();assert.deepEqual(f.store.list('collections').map(c=>c.id),[...ids,last.id]);assert.equal((await f.request('/api/admin/collections/order','PUT',{ids})).status,409);
  assert.equal((await f.request('/api/admin/collections/'+draft.id,'DELETE',{})).status,200);catalog=await(await f.request('/api/catalog')).json();assert.deepEqual(catalog.collections.map(c=>c.id),[second.id,'fallen-angel',last.id]);
 });
+
+test('owner controls popup promotions and public API exposes only enabled scheduled ads',async t=>{
+ const f=await fixture(t);const p={id:'welcome',title:'New drop',body:'Welcome to the locker',code:'HELLO',label:'Shop',url:'/#collection',frequency:'session',delay:3,enabled:true,startsAt:'',endsAt:''};
+ assert.equal((await f.request('/api/admin/promotions')).status,401);assert.equal((await f.request('/api/admin/promotions','PUT',{promotions:[p]})).status,401);assert.deepEqual((await(await f.request('/api/promotions')).json()).promotions,[]);
+ await f.login();const expired={...p,id:'expired',endsAt:new Date(Date.now()-10000).toISOString()},future={...p,id:'future',startsAt:new Date(Date.now()+3600000).toISOString()},disabled={...p,id:'disabled',enabled:false};
+ assert.equal((await f.request('/api/admin/promotions','PUT',{promotions:[p,expired,future,disabled]})).status,200);assert.deepEqual((await(await f.request('/api/promotions')).json()).promotions,[p]);
+ assert.equal((await(await f.request('/api/admin/promotions')).json()).promotions.length,4);
+ for(const patch of [{url:'https://evil.example'},{url:'//evil.example'},{url:'/\\evil.example'},{frequency:'invalid'},{delay:-1},{endsAt:'invalid'},{startsAt:'2030-01-02',endsAt:'2030-01-01'}])assert.equal((await f.request('/api/admin/promotions','PUT',{promotions:[{...p,...patch}]})).status,400);
+ assert.equal((await f.request('/api/admin/promotions','PUT',{promotions:[p,p]})).status,400);assert.deepEqual((await(await f.request('/api/promotions')).json()).promotions,[p]);
+ const reopened=createStore(f.filename);try{assert.equal(JSON.parse(reopened.db.prepare("SELECT value FROM settings WHERE key='promotions'").get().value).length,4);}finally{reopened.close();}
+ await f.request('/api/admin/promotions','PUT',{promotions:[]});assert.deepEqual((await(await f.request('/api/promotions')).json()).promotions,[]);
+});

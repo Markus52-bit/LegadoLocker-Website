@@ -1,3 +1,4 @@
+import {initPromotions} from './promotions.js';
 import {initCheckout,checkoutProvider} from './checkout.js';
 import {initHero} from './hero.js';
 import {initFooterLinks} from './footer.js';
@@ -65,3 +66,5 @@ $('#year').textContent=new Date().getFullYear();renderProducts();saveBag();initL
 initCheckout({getBag:()=>bag,onReady:renderProducts,onPurchased:items=>{for(const item of items){const line=bag.find(b=>b.id===item.id&&b.size===item.size);if(line)line.quantity-=item.quantity;}bag=validBag(bag.filter(line=>line.quantity>0));saveBag();if($('#bag-dialog').open)renderBag();}});
 
 $('#product-dialog').addEventListener('close',()=>{clearDetailGallery();clearDetailGallery=()=>{};});
+
+initPromotions();

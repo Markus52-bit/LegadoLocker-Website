@@ -193,3 +193,9 @@ Use the existing isolated checkout; do not create a Git worktree unless requeste
 ### New and active customer audiences
 
 Admin → Customers filters accounts into Pending verification, New (verified but not yet welcomed), and Active (a welcome campaign was accepted by the email provider). Existing verified accounts start as New until welcomed; Active does not measure visits or purchases. Admin → Email campaigns offers All subscribers, New accounts (welcome), and Active accounts. Only verified customers with marketing consent qualify. A New-account campaign marks recipients welcomed only after provider acceptance; failures stay New. Recipient snapshots and retry protections still apply. Welcome messages are manually drafted and sent, not automatically sent at registration. Provider acceptance does not guarantee delivery.
+
+## Storefront popup ads
+
+Open Admin → Marketing → Popup ads. Create a headline, message, optional discount code, and storefront button destination (for example `/#collection`). Preview opens the same accessible, dismissible popup used in the store. Save with Enabled checked to publish; uncheck and save to stop showing it on new visits, or delete it. Optional start/end dates use the administrator’s local time and are stored in UTC. Discount codes must already exist in the checkout provider.
+
+Choose a delay of 0–120 seconds and once per browser session, once per UTC day, or every page visit. Browser storage remembers display, not customer identity; clearing storage or changing browsers resets this limit. Only the first enabled, in-schedule popup eligible for that browser appears per page visit. Popups wait until the locker has opened and other dialogs have closed, support Escape and a close button, and do not block shopping if the promotions service fails. Schedule changes apply on the next page load; existing open pages do not poll for edits. Saved promotions share the persistent catalog database.

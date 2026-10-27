@@ -1,3 +1,4 @@
+import {readPromotions,savePromotions,livePromotions} from './promotions.mjs';
 import {createShopify} from './shopify.mjs';
 import {readFooterLinks,saveFooterLinks} from './footer-links.mjs';
 import {randomUUID} from 'node:crypto';
@@ -24,6 +25,8 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
   async handle({req,res,route,url,send,authenticated,jsonBody}){
    if(route==='/api/checkout'&&req.method==='POST'){if(checkoutProvider!=='shopify')fail('Shopify checkout is not enabled.',409);throttle('shopify-checkout:'+req.socket.remoteAddress,300);send(201,shopify.checkout(await jsonBody(req)));return true;}
    if(route==='/api/checkout/status'&&req.method==='POST'){send(200,shopify.status((await jsonBody(req)).checkoutToken));return true;}
+   if(route==='/api/promotions'&&req.method==='GET'){send(200,{promotions:livePromotions(store)});return true;}
+   if(route==='/api/admin/promotions'){if(!authenticated)fail('Sign in to manage your store.',401);if(req.method==='GET'){send(200,{promotions:readPromotions(store)});return true;}if(req.method==='PUT'){send(200,{promotions:savePromotions(store,(await jsonBody(req)).promotions)});return true;}fail('Method not allowed.',405);}
    if(route==='/api/footer-links'&&req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}
    if(route==='/api/admin/footer-links'){if(!authenticated)fail('Sign in to manage your store.',401);if(req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}if(req.method==='PUT'){const body=await jsonBody(req);send(200,{links:saveFooterLinks(store,body.links)});return true;}fail('Method not allowed.',405);}
    if(route==='/api/features'&&req.method==='GET'){send(200,{accountsReady:!!mailer.ready&&!!origin,checkoutReady:checkoutReady(),checkoutProvider,shopifyCheckoutOrigin:shopify.origin,shopifyOrderSyncReady:shopify.orderSyncReady});return true;}

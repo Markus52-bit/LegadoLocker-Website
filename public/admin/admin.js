@@ -1,3 +1,4 @@
+import {initPromotionsAdmin} from './promotions.js';
 import {initFooterAdmin} from './footer.js';
 import {productPhotos} from '../photos.js';
 import {initOperations} from './operations.js';
@@ -37,6 +38,8 @@ function render(){
 }
 function edit(id=null){editing=id;const item=catalog[tab].find(i=>i.id===id);render();$('#item-form').reset();$('#product-fields').hidden=tab!=='products';$('#collectionId').required=tab==='products';$('#sizes').required=tab==='products';$('#currency').required=tab==='products';$('#editor-title').textContent=(item?'Edit ':'New ')+(tab==='products'?'piece':'collection');$('#item-form button[type=submit]').textContent=tab==='products'?'Save piece':'Save collection';$('#delete-item').hidden=!item;discardPhotos();photos=item&&tab==='products'?productPhotos(item).map(image=>({image})):[];renderPhotos();for(const key of ['name','description','color','kind','collectionId','currency'])if(item&&key in item)$('#'+key).value=item[key];$('#published').checked=item?.published||false;if(item&&tab==='products'){$('#sizes').value=item.sizes.join(', ');$('#price').step=String(1/currencyFactor(item.currency));$('#price').value=item.price===null?'':(item.price/currencyFactor(item.currency)).toFixed(Math.log10(currencyFactor(item.currency)));}variantDraft={...(item?.shopifyVariants||{})};renderVariantFields(false);}
 initOperations({api,message});
+initPromotionsAdmin({api,message});
+document.querySelectorAll('.admin-tabs button').forEach(button=>button.addEventListener('click',()=>{const popup=button.id==='promotions-tab';$('#promotions-editor').hidden=!popup;if(popup){for(const id of ['catalog-layout','operations','footer-editor'])$('#'+id).hidden=true;document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===button));}document.querySelectorAll('.admin-tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.classList.contains('active'))));}));
 initFooterAdmin({api,message});
 async function refresh(){catalog=await api('catalog');showDashboard();edit();}
 $('#login-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;busy=true;try{await api('login','POST',{password:$('#password').value});$('#password').value='';await refresh();message('Signed in. Welcome to the backroom.','success');}catch(error){message(error.message,'error');}finally{busy=false;}});
