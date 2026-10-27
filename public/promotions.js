@@ -4,7 +4,7 @@ export function showPromotion(p,{preview=false}={}){
  const eyebrow=document.createElement('p');eyebrow.className='eyebrow';eyebrow.textContent='FROM THE LOCKER';
  const title=document.createElement('h2');title.id='promotion-title';title.textContent=p.title;dialog.setAttribute('aria-labelledby',title.id);
  const body=document.createElement('p');body.className='promotion-copy';body.textContent=p.body;dialog.append(close,eyebrow,title,body);
- if(p.code){const code=document.createElement('p');code.className='promotion-code';code.textContent='USE CODE: '+p.code;dialog.append(code);}
+ if(p.code&&p.type!=='signup'){const code=document.createElement('p');code.className='promotion-code';code.textContent='USE CODE: '+p.code;dialog.append(code);}
  if(p.type==='signup'){
   const form=document.createElement('form');form.className='promotion-signup';
   const emailLabel=document.createElement('label');emailLabel.htmlFor='promotion-email';emailLabel.textContent='Email address';
@@ -12,7 +12,7 @@ export function showPromotion(p,{preview=false}={}){
   const consentLabel=document.createElement('label');consentLabel.className='promotion-consent';const consent=document.createElement('input');consent.type='checkbox';consent.required=true;consentLabel.append(consent,document.createTextNode('Send me new drops, discounts, and offers. I can unsubscribe anytime.'));
   const submit=document.createElement('button');submit.className='button';submit.type='submit';submit.textContent='Sign me up';
   const status=document.createElement('p');status.setAttribute('role','status');status.className='promotion-copy';form.append(emailLabel,input,consentLabel,submit,status);dialog.append(form);
-  form.addEventListener('submit',async e=>{e.preventDefault();if(preview){status.textContent='Preview only — no signup or email was sent.';return;}submit.disabled=true;status.textContent='Sending confirmation…';try{const response=await fetch('/api/newsletter/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:input.value,consent:consent.checked})});const data=await response.json();if(!response.ok)throw Error(data.error||'Signup failed. Please try again.');status.textContent=data.message;input.disabled=true;consent.disabled=true;submit.textContent='Check your inbox';}catch(error){status.textContent=error.message;submit.disabled=false;}});
+  form.addEventListener('submit',async e=>{e.preventDefault();if(preview){status.textContent='Preview only — no signup or email was sent.';return;}submit.disabled=true;status.textContent='Sending confirmation…';try{const response=await fetch('/api/newsletter/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:input.value,consent:consent.checked,promotionId:p.id})});const data=await response.json();if(!response.ok)throw Error(data.error||'Signup failed. Please try again.');status.textContent=data.message;input.disabled=true;consent.disabled=true;submit.textContent='Check your inbox';}catch(error){status.textContent=error.message;submit.disabled=false;}});
  }
  if(p.url&&p.url.startsWith('/')&&!p.url.startsWith('//')&&!/[\\\u0000-\u0020]/.test(p.url)&&p.type!=='signup'){const a=document.createElement('a');a.className='button';a.textContent=p.label||'Shop now ↗';a.href=p.url;a.onclick=()=>dialog.close();dialog.append(a);}
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
