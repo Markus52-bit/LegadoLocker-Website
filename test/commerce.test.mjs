@@ -84,3 +84,15 @@ test('welcome audiences separate new, active and pending accounts and honor cons
  const campaign=await draft('active');const result=await(await f.admin('campaigns/'+campaign.id+'/send','POST',{})).json();assert.equal(result.counts.accepted,2);
  const all=await draft('all');assert.equal((await(await f.admin('campaigns/'+all.id+'/send','POST',{})).json()).counts.accepted,2);
 });
+
+test('popup email subscribers confirm consent before campaigns without changing existing passwords',async t=>{
+ const f=await fixture(t);const signup=(address,consent=true)=>f.request('/api/newsletter/subscribe','POST',{email:address,consent});
+ assert.equal((await signup('bad')).status,400);assert.equal((await signup('new@example.com',false)).status,400);
+ assert.equal((await signup(' NEW@example.com ')).status,202);let customer=f.commerce.findCustomer('new@example.com');assert.equal(customer.subscriberOnly,true);assert.equal(customer.marketingConsent,false);assert.equal(customer.verified,false);
+ const confirmation=()=>new URL(f.messages.at(-1).text.match(/https:\/\/\S+\/account\?subscribe=\S+/)[0]).searchParams.get('subscribe');const token=confirmation();
+ const welcome=await(await f.admin('campaigns','POST',{subject:'Welcome',body:'Thanks',audience:'new'})).json();assert.equal((await(await f.admin('campaigns/'+welcome.id+'/send','POST',{})).json()).counts.accepted,undefined);
+ assert.equal((await f.request('/api/customer/subscribe-confirm','POST',{token})).status,200);assert.equal((await f.request('/api/customer/subscribe-confirm','POST',{token})).status,400);customer=f.commerce.findCustomer('new@example.com');assert.equal(customer.marketingConsent,true);assert.equal(customer.verified,true);
+ const next=await(await f.admin('campaigns','POST',{subject:'Hello subscriber',body:'Welcome',audience:'new'})).json();assert.equal((await(await f.admin('campaigns/'+next.id+'/send','POST',{})).json()).counts.accepted,1);const unsubscribe=new URL(f.messages.at(-1).text.match(/https:\/\/\S+\/unsubscribe\?token=\S+/)[0]).searchParams.get('token');
+ const before=f.messages.length;await signup('new@example.com');assert.equal(f.messages.length,before);await f.request('/api/email/unsubscribe?token='+unsubscribe,'POST');await signup('new@example.com');const pending=confirmation();assert.equal(f.commerce.findCustomer('new@example.com').marketingConsent,false);await f.request('/api/email/unsubscribe?token='+unsubscribe,'POST');assert.equal((await f.request('/api/customer/subscribe-confirm','POST',{token:pending})).status,400);
+ const existing=await f.customer('existing@example.com',false);await signup(existing.email);const existingToken=confirmation();assert.equal(f.commerce.findCustomer(existing.email).marketingConsent,false);await f.request('/api/customer/subscribe-confirm','POST',{token:existingToken});assert.equal((await f.request('/api/customer/login','POST',{email:existing.email,password:existing.password})).status,200);assert.equal(f.commerce.findCustomer(existing.email).marketingConsent,true);
+});

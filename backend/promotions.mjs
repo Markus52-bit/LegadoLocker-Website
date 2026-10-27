@@ -10,7 +10,8 @@ export function savePromotions(store,input){
   const startsAt=str('startsAt',40),endsAt=str('endsAt',40);for(const v of [startsAt,endsAt])if(v&&!Number.isFinite(Date.parse(v)))fail('Enter valid schedule dates.');if(startsAt&&endsAt&&Date.parse(endsAt)<=Date.parse(startsAt))fail('End must be after start.');
   const url=str('url',2048);if(url&&(!url.startsWith('/')||url.startsWith('//')||/[\\\u0000-\u0020]/.test(url)))fail('Use a storefront path such as /#collection.');
   if(!['session','day','always'].includes(item.frequency))fail('Choose a display frequency.');if(!Number.isInteger(item.delay)||item.delay<0||item.delay>120)fail('Delay must be 0–120 seconds.');
-  return {id,title:str('title',100,true),body:str('body',2000,true),label:str('label',60),url,code:str('code',40),enabled:item.enabled===true,startsAt,endsAt,frequency:item.frequency,delay:item.delay};
+  const type=item.type||'announcement';if(!['announcement','signup'].includes(type))fail('Choose an announcement or email signup popup.');
+  return {...(type==='signup'?{type}:{}),id,title:str('title',100,true),body:str('body',2000,true),label:str('label',60),url,code:str('code',40),enabled:item.enabled===true,startsAt,endsAt,frequency:item.frequency,delay:item.delay};
  });store.db.prepare('INSERT INTO settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('promotions',JSON.stringify(items));return items;
 }
 export function livePromotions(store,now=Date.now()){return readPromotions(store).filter(p=>p.enabled&&(!p.startsAt||Date.parse(p.startsAt)<=now)&&(!p.endsAt||Date.parse(p.endsAt)>now));}

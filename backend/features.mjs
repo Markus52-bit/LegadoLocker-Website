@@ -25,6 +25,12 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
   async handle({req,res,route,url,send,authenticated,jsonBody}){
    if(route==='/api/checkout'&&req.method==='POST'){if(checkoutProvider!=='shopify')fail('Shopify checkout is not enabled.',409);throttle('shopify-checkout:'+req.socket.remoteAddress,300);send(201,shopify.checkout(await jsonBody(req)));return true;}
    if(route==='/api/checkout/status'&&req.method==='POST'){send(200,shopify.status((await jsonBody(req)).checkoutToken));return true;}
+   if(route==='/api/newsletter/subscribe'&&req.method==='POST'){
+    if(!mailer.ready||!origin)fail('Email signup is temporarily unavailable. Please try again later.',503);
+    throttle('newsletter-ip:'+req.socket.remoteAddress,20);const body=await jsonBody(req);const address=email(body.email);if(body.consent!==true)fail('Please agree to receive offers before subscribing.');throttle('newsletter-email:'+digest(address),5);
+    const customer=await commerce.subscribe(address);if(!customer.verified||!customer.marketingConsent){const token=commerce.token(customer.id,'subscribe');try{await mailer.send({to:address,subject:'Confirm your Legado Locker email signup',text:`Confirm that you want to receive Legado Locker drops, discounts, and offers:\n${origin}/account?subscribe=${token}\n\nThis link expires in 24 hours. You can unsubscribe at any time. If you did not request this, ignore this message.`,idempotencyKey:'subscribe-'+token});}catch{fail('We could not send your confirmation email. Please try again later.',503);}}
+    send(202,{message:'Check your inbox for a confirmation link if needed. You will receive offers after confirming. Already subscribed? You are all set.'});return true;
+   }
    if(route==='/api/promotions'&&req.method==='GET'){send(200,{promotions:livePromotions(store)});return true;}
    if(route==='/api/admin/promotions'){if(!authenticated)fail('Sign in to manage your store.',401);if(req.method==='GET'){send(200,{promotions:readPromotions(store)});return true;}if(req.method==='PUT'){send(200,{promotions:savePromotions(store,(await jsonBody(req)).promotions)});return true;}fail('Method not allowed.',405);}
    if(route==='/api/footer-links'&&req.method==='GET'){send(200,{links:readFooterLinks(store)});return true;}
@@ -33,19 +39,20 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
    if(route==='/api/email/unsubscribe'&&req.method==='POST'){commerce.unsubscribe(url.searchParams.get('token'));send(200,{ok:true});return true;}
    if(route.startsWith('/api/customer/')){
     const action=route.slice('/api/customer/'.length);const customer=customerOf(req);
-    if(req.method==='POST'&&['register','login','recover','resend','verify','reset'].includes(action))throttle(req.socket.remoteAddress+':'+action,100);
+    if(req.method==='POST'&&['register','login','recover','resend','verify','reset','subscribe-confirm'].includes(action))throttle(req.socket.remoteAddress+':'+action,100);
     if(action==='register'&&req.method==='POST'){
      if(!mailer.ready||!origin)fail('Account registration will open once email delivery is configured.',503);const body=await jsonBody(req);throttle('register:'+digest(email(body.email)),5);const created=await commerce.register(body);if(created)try{await accountEmail(created,'verify');}catch{fail('Verification email could not be sent. Use Resend verification after the email service is restored.',503);}send(202,{message:'If this email can be registered, a verification link is on its way. Check your inbox, or use Resend verification.'});return true;
     }
     if(['recover','resend'].includes(action)&&req.method==='POST'){
      if(!mailer.ready||!origin)fail('Email delivery is not configured.',503);const body=await jsonBody(req);throttle(action+':'+digest(email(body.email)),5);const found=commerce.findCustomer(email(body.email));if(found&&(action==='recover'||!found.verified))try{await accountEmail(found,action==='recover'?'reset':'verify');}catch{fail('Email service is temporarily unavailable. Please try again later.',503);}send(202,{message:'If this account is eligible, an email link is on its way.'});return true;
     }
+    if(action==='subscribe-confirm'&&req.method==='POST'){await commerce.consume((await jsonBody(req)).token,'subscribe');send(200,{message:'You’re subscribed! Watch your inbox for new drops and offers. You can unsubscribe from any campaign.'});return true;}
     if(['verify','reset'].includes(action)&&req.method==='POST'){const body=await jsonBody(req);await commerce.consume(body.token,action==='verify'?'verify':'reset',body.password);send(200,{message:action==='verify'?'Email verified. You can sign in.':'Password updated. Sign in with your new password.'});return true;}
     if(action==='login'&&req.method==='POST'){const body=await jsonBody(req);throttle('customer-login:'+digest(email(body.email)),10);const found=await commerce.login(body.email,body.password);if(!found)fail('Email or password is incorrect. Check your email address or use Forgot password below.',401);res.setHeader('Set-Cookie',customerCookie(commerce.newSession(found.id),604800));const {unsubscribeHash,...safe}=found;send(200,{customer:safe});return true;}
     if(!customer)fail('Sign in to your customer account.',401);
     if(action==='me'&&req.method==='GET'){const {unsubscribeHash,...safe}=customer;send(200,{customer:safe,orders:commerce.customerOrders(customer)});return true;}
     if(action==='logout'&&req.method==='POST'){await jsonBody(req);const token=(req.headers.cookie||'').split(';').map(c=>c.trim()).find(c=>c.startsWith('legado_customer='))?.slice(16);commerce.logout(token);res.setHeader('Set-Cookie',customerCookie('',0));send(200,{ok:true});return true;}
-    if(action==='preferences'&&req.method==='POST'){const body=await jsonBody(req);customer.marketingConsent=body.marketingConsent===true;customer.consentUpdatedAt=date();commerce.saveCustomer(customer);send(200,{ok:true});return true;}
+    if(action==='preferences'&&req.method==='POST'){const body=await jsonBody(req);customer.marketingConsent=body.marketingConsent===true;if(!customer.marketingConsent)store.db.prepare("DELETE FROM customer_tokens WHERE customer_id=? AND kind='subscribe'").run(customer.id);customer.consentUpdatedAt=date();commerce.saveCustomer(customer);send(200,{ok:true});return true;}
     if(action==='checkout'&&req.method==='POST'){if(checkoutProvider!=='stripe')fail('Use the Shopify checkout button for this store.',409);throttle('checkout:'+customer.id,10);const body=await jsonBody(req);send(201,await payments.checkout(customer,body));return true;}
     fail('Endpoint not found.',404);
    }
