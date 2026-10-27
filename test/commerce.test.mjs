@@ -71,3 +71,16 @@ test('existing catalog and owner credentials survive additive commerce migration
  const {mkdtemp,rm}=await import('node:fs/promises');const directory=await mkdtemp('/tmp/legado-migration-');t.after(()=>rm(directory,{recursive:true,force:true}));const filename=directory+'/store.sqlite';let store=createStore(filename);const owner=randomBytes(18).toString('hex');await store.setPassword(owner);const item=store.get('products','tee-black');item.name='Owner custom piece';store.put('products',item);
  let commerce=createCommerce(store);const customer=await commerce.register({name:'Persistent',email:'persistent@example.com',password:randomBytes(18).toString('hex'),marketingConsent:true});customer.verified=true;commerce.saveCustomer(customer);commerce.createOrder({name:customer.name,email:customer.email,currency:'USD',items:[{name:item.name,quantity:1,unitPrice:1000}],shipping:0,tax:0});store.close();store=createStore(filename);try{commerce=createCommerce(store);assert.equal(store.get('products','tee-black').name,'Owner custom piece');assert.equal(await store.verifyPassword(owner),true);assert.equal(commerce.customer(customer.id).verified,true);assert.equal(commerce.customerOrders(customer).length,1);}finally{store.close();}
 });
+
+test('welcome audiences separate new, active and pending accounts and honor consent',async t=>{
+ const f=await fixture(t);await f.customer('new@example.com');await f.customer('active@example.com');await f.customer('no-offers@example.com',false);
+ const active=f.commerce.findCustomer('active@example.com');active.welcomedAt=new Date().toISOString();f.commerce.saveCustomer(active);
+ await f.request('/api/customer/register','POST',{email:'pending@example.com',name:'Pending',password:randomBytes(18).toString('hex'),marketingConsent:true});
+ const draft=async audience=>{const r=await f.admin('campaigns','POST',{subject:'Hello',body:'Welcome to the locker',audience});assert.equal(r.status,201);return r.json();};
+ assert.equal((await f.admin('campaigns','POST',{subject:'Bad',body:'Bad',audience:'invalid'})).status,400);
+ const first=await draft('new'),second=await draft('new');const start=f.messages.length;
+ const sent=await(await f.admin('campaigns/'+first.id+'/send','POST',{})).json();assert.equal(sent.counts.accepted,1);assert.equal(f.messages[start].to,'new@example.com');assert.ok(f.commerce.findCustomer('new@example.com').welcomedAt);assert.ok(!f.commerce.findCustomer('no-offers@example.com').welcomedAt);
+ await f.admin('campaigns/'+first.id+'/send','POST',{});await f.admin('campaigns/'+second.id+'/send','POST',{});assert.equal(f.messages.length,start+1);
+ const campaign=await draft('active');const result=await(await f.admin('campaigns/'+campaign.id+'/send','POST',{})).json();assert.equal(result.counts.accepted,2);
+ const all=await draft('all');assert.equal((await(await f.admin('campaigns/'+all.id+'/send','POST',{})).json()).counts.accepted,2);
+});
