@@ -108,14 +108,14 @@ Create a Resend account and verify your sending domain using **the exact DNS rec
 | --- | --- |
 | `RESEND_API_KEY` | Your Resend API key; server-side secret |
 | `EMAIL_FROM` | A verified sender, such as `Legado Locker <hello@legadolocker.com>` after verifying that domain |
-| `SHOP_POSTAL_ADDRESS` | Your actual business mailing address, included in marketing emails |
+
 | `PUBLIC_ORIGIN` | Your exact HTTPS site origin, currently `https://legadolocker.com`, no trailing slash |
 
 Save and redeploy. Never send API keys or passwords in chat or commit them. These are raw server environment values in Render, not cloud proxy placeholders. Verify registration and recovery with your own email first. No production email was sent during development; automated tests use an injected fake mail provider.
 
 In **Admin → Email campaigns**, draft a subject and plain-text message and optionally select a discount. Saving a draft sends nothing. The explicit send action confirms the audience and submits small batches until finished or a provider error requires retry. The audience is snapshotted when sending begins; only verified subscribers who opted in are eligible. Campaign content is fixed once sending begins. Send a separate campaign for later subscribers.
 
-Counts distinguish pending, provider-accepted, skipped, retry, and unknown outcomes. **Accepted means the provider accepted the email, not that it reached an inbox.** Delivery, bounce, open, and click analytics are not implemented; use Resend for delivery diagnostics. There is no marketing tracking pixel. Every campaign includes an unsubscribe link, one-click unsubscribe headers, and the configured mailing address. Account and order-status emails are transactional and separate from marketing consent.
+Counts distinguish pending, provider-accepted, skipped, retry, and unknown outcomes. **Accepted means the provider accepted the email, not that it reached an inbox.** Delivery, bounce, open, and click analytics are not implemented; use Resend for delivery diagnostics. There is no marketing tracking pixel. Every campaign includes an unsubscribe link, one-click unsubscribe headers, but no automatically appended mailing address. Include any legally required sender address in your campaign message. Account and order-status emails are transactional and separate from marketing consent.
 
 Recipient progress survives restarts. Ambiguous requests retry with stable idempotency keys for up to 23 hours. Older ambiguous requests are marked unknown and will not automatically resend; check the provider before deciding whether to draft another campaign. Resume interrupted campaigns from the admin; no background queue runs after the admin request completes. Confirmed opt-outs are skipped even if a campaign was already started.
 

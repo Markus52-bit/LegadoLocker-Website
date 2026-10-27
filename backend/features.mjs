@@ -13,7 +13,7 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
  const shopify=createShopify({store,commerce,config:paymentConfig});
  const checkoutProvider=String(paymentConfig.CHECKOUT_PROVIDER||'stripe').trim().toLowerCase();
  const checkoutReady=()=>checkoutProvider==='shopify'?shopify.ready:checkoutProvider==='stripe'&&payments.ready;
- const marketingReady=()=>mailer.ready&&!!mailer.address&&!!origin;
+ const marketingReady=()=>mailer.ready&&!!origin;
  function throttle(key,max=10){const at=Date.now();for(const [k,v]of limits)if(v.until<at)limits.delete(k);const entry=limits.get(key)||{count:0,until:at+15*60000};if(++entry.count>max)fail('Too many attempts. Please try again in 15 minutes.',429);limits.set(key,entry);}
  const customerCookie=(value,age)=>`legado_customer=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${age}${production?'; Secure':''}`;
  const customerOf=req=>{const cookie=(req.headers.cookie||'').split(';').map(c=>c.trim()).find(c=>c.startsWith('legado_customer='));return commerce.session(cookie?.slice(16));};
@@ -65,12 +65,12 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
    }
    const campaignMatch=route.match(/^\/api\/admin\/campaigns\/([a-zA-Z0-9-]+)\/send$/);
    if(campaignMatch&&req.method==='POST'){
-    await jsonBody(req);if(!marketingReady())fail('Configure Resend, a verified sender, SHOP_POSTAL_ADDRESS, and PUBLIC_ORIGIN before sending offers.',503);
+    await jsonBody(req);if(!marketingReady())fail('Configure Resend, a verified sender, and PUBLIC_ORIGIN before sending offers.',503);
     const id=campaignMatch[1],campaign=commerce.get('campaigns',id);if(!campaign)fail('Campaign not found.',404);if(locks.has(id))fail('This campaign is already being processed.',409);
     const discount=campaign.discountId?commerce.get('discounts',campaign.discountId):null;if(discount&&(!discount.active||(discount.expiresAt&&new Date(discount.expiresAt)<=new Date())))fail('This campaign’s discount has expired or been disabled.');locks.add(id);
     try{
      if(campaign.status==='draft'){
-      store.db.exec('BEGIN IMMEDIATE');try{campaign.status='sending';campaign.startedAt=date();campaign.postalAddress=mailer.address;campaign.origin=origin;campaign.discount=discount?{code:discount.code,percent:discount.percent,expiresAt:discount.expiresAt}:null;commerce.put('campaigns',campaign);
+      store.db.exec('BEGIN IMMEDIATE');try{campaign.status='sending';campaign.startedAt=date();campaign.origin=origin;campaign.discount=discount?{code:discount.code,percent:discount.percent,expiresAt:discount.expiresAt}:null;commerce.put('campaigns',campaign);
       for(const c of commerce.customers().filter(c=>c.verified&&c.marketingConsent))commerce.recipient(id,c.id,{customerId:c.id,status:'pending'});store.db.exec('COMMIT');}catch(error){store.db.exec('ROLLBACK');throw error;}
      }
      const batch=commerce.recipients(id).filter(r=>['pending','retry','sending'].includes(r.status)).slice(0,3);
@@ -79,7 +79,7 @@ export function createFeatures({store,origin,production,mailer=createMailer(),pa
       let token=recipient.unsubscribeToken;if(!token)token=commerce.unsubscribeToken(customer);
       const current={...recipient,status:'sending',startedAt:recipient.startedAt||date(),unsubscribeToken:token};commerce.recipient(id,customer.id,current);
       const unsubscribe=campaign.origin+'/unsubscribe?token='+token;
-      try{const providerId=await mailer.send({to:customer.email,subject:campaign.subject,text:`${campaign.body}\n\n${campaign.discount?`Discount code: ${campaign.discount.code} — ${campaign.discount.percent}% off${campaign.discount.expiresAt?' until '+campaign.discount.expiresAt:''}.\n\n`:''}Shop: ${campaign.origin}/#collection\n\nLegado Locker\n${campaign.postalAddress}\n\nYou opted in to Legado Locker offers. Unsubscribe: ${unsubscribe}`,idempotencyKey:'campaign-'+id+'-'+customer.id,headers:{'List-Unsubscribe':'<'+campaign.origin+'/api/email/unsubscribe?token='+token+'>','List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}});commerce.recipient(id,customer.id,{...current,status:'accepted',providerId,acceptedAt:date()});}
+      try{const providerId=await mailer.send({to:customer.email,subject:campaign.subject,text:`${campaign.body}\n\n${campaign.discount?`Discount code: ${campaign.discount.code} — ${campaign.discount.percent}% off${campaign.discount.expiresAt?' until '+campaign.discount.expiresAt:''}.\n\n`:''}Shop: ${campaign.origin}/#collection\n\nLegado Locker\n${campaign.postalAddress?campaign.postalAddress+'\n\n':''}You opted in to Legado Locker offers. Unsubscribe: ${unsubscribe}`,idempotencyKey:'campaign-'+id+'-'+customer.id,headers:{'List-Unsubscribe':'<'+campaign.origin+'/api/email/unsubscribe?token='+token+'>','List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}});commerce.recipient(id,customer.id,{...current,status:'accepted',providerId,acceptedAt:date()});}
       catch{commerce.recipient(id,customer.id,{...current,status:'retry',error:'Provider did not confirm acceptance. Retry within 23 hours uses the same idempotency key.'});}
      }
      const remaining=commerce.recipients(id).filter(r=>['pending','retry','sending'].includes(r.status));campaign.status=remaining.length?'sending':'complete';commerce.put('campaigns',campaign);send(200,{...campaign,remaining:remaining.length,counts:commerce.recipients(id).reduce((c,r)=>(c[r.status]=(c[r.status]||0)+1,c),{})});return true;
