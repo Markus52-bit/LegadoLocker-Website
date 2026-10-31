@@ -62,3 +62,20 @@ footer{align-items:flex-start;flex-wrap:wrap;gap:35px}.footer-brand p{margin-top
 .promotion-dialog h2{overflow-wrap:anywhere}
 .promotion-signup label{display:block;font:13px/1.6 Arial,sans-serif;letter-spacing:0;margin:18px 0 8px;color:#ddd}.promotion-signup input[type=email]{box-sizing:border-box;width:100%;padding:14px;background:#242424;border:1px solid #666;border-radius:4px;color:#fff;font:16px Arial,sans-serif}.promotion-signup .promotion-consent{display:flex;align-items:flex-start;gap:10px;font-size:12px}.promotion-consent input{margin-top:3px;flex-shrink:0;width:18px;height:18px}.promotion-signup .button{width:100%;cursor:pointer}.promotion-signup .button:disabled{opacity:.6;cursor:default}.promotion-signup :focus-visible{outline:2px solid #fff;outline-offset:3px}
 .footer-link-group a.footer-social-button{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 16px;border:1px solid #555;border-radius:5px;color:#eee;background:#171717;text-decoration:none;box-sizing:border-box;transition:background .15s,border-color .15s}.footer-link-group a.footer-social-button:hover{background:#292929;border-color:#aaa;text-decoration:none}.footer-social-button:focus-visible{outline:2px solid #eee;outline-offset:4px}.footer-social-icon{width:20px;height:20px;flex-shrink:0}
+
+/* Let large copy reflow on narrow phones without clipping or disabling zoom. */
+.hero-copy,.section-head>*,.story>*,.product-meta>*,.detail-info{min-width:0}
+:where(h1,h2,h3,.wordmark,.hero-shop-label){overflow-wrap:anywhere}
+@media(max-width:600px){
+ .hero h1{font-size:clamp(3rem,18vw,6.75rem);line-height:.94;letter-spacing:-.025em}
+ #hero-title.long-title{font-size:clamp(2rem,11vw,4rem);line-height:1.05}
+ .section-head h2{font-size:clamp(2rem,9vw,3.5rem);line-height:1.08}
+ .story h2{font-size:clamp(1.875rem,9vw,3rem);line-height:1.08}
+ dialog h2{font-size:clamp(1.5rem,7vw,2.25rem);line-height:1.15}
+ .promotion-dialog{padding:44px clamp(18px,5vw,30px) 28px}
+ .promotion-dialog h2{font-size:clamp(1.75rem,8vw,2.75rem)}
+ .footer-statement{font-size:clamp(1.75rem,12vw,4.5rem);white-space:normal;overflow:visible;overflow-wrap:anywhere;line-height:1.12}
+ .collection-picker{flex-wrap:wrap}.collection-picker select{min-width:0;max-width:100%;width:100%}
+ .hero .button{max-width:100%;white-space:normal}.hero-shop-label{min-width:0;line-height:1.6}
+ header{gap:12px;flex-wrap:wrap}header .wordmark{font-size:clamp(1.125rem,5.5vw,1.375rem)}header nav{flex-wrap:wrap}
+}
